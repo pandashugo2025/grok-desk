@@ -535,10 +535,12 @@
     ctx.beginPath(); ctx.ellipse(sh.x, sh.y, s * 0.7, s * 0.28, 0, 0, 7); ctx.fill();
 
     ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createRadialGradient(p.x, p.y, s * 0.2, p.x, p.y, s * 2.2);
-    g.addColorStop(0, hexA(agent.color, active ? 0.55 : 0.28));
+    /* mind30: smaller aura — stay inside floor-stage clip, no chrome wash */
+    const glowR = s * 1.55;
+    const g = ctx.createRadialGradient(p.x, p.y, s * 0.2, p.x, p.y, glowR);
+    g.addColorStop(0, hexA(agent.color, active ? 0.42 : 0.22));
     g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, s * 2.2, 0, 7); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, glowR, 0, 7); ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
 
     const c = hex(agent.color);

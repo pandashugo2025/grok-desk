@@ -66,11 +66,8 @@
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden; max-width:100%; }
   html { overflow-x: hidden; }
   body {
-    background:
-      /* ambient décor kept BELOW chrome (not top-right) so lang/share stay legible */
-      radial-gradient(720px 420px at 48% 58%, rgba(255,77,207,0.035), transparent 60%),
-      radial-gradient(640px 380px at 18% 78%, rgba(57,255,135,0.035), transparent 55%),
-      var(--bg);
+    /* mind30: no ambient pink radial — was washing iPad landscape chrome */
+    background: var(--bg);
   }
   .desk {
     display: grid;
@@ -90,9 +87,8 @@
     position: relative;
     z-index: 50;
     isolation: isolate;
-    background: rgba(3,4,6,0.97);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: #030406; /* mind30: solid opaque — no canvas bleed */
+    /* no backdrop-filter: Safari lets Floor pink wash through blur */
     overflow: visible;
     max-width: 100%;
     min-width: 0;
@@ -130,7 +126,7 @@
     padding: 4px 10px; border-radius: 999px;
     border: 1px solid rgba(124,255,178,0.45); color: var(--lime);
     font-size: 9px; letter-spacing: 0.16em; margin-left: 10px;
-    background: rgba(7,9,14,0.95);
+    background: #07090e;
     flex: 0 0 auto;
     white-space: nowrap;
     position: relative;
@@ -144,7 +140,7 @@
     border: 1px solid rgba(255,200,87,0.4); color: #ffc857;
     padding: 3px 8px; border-radius: 999px; font-size: 8px; letter-spacing: 0.14em;
     margin-left: 6px;
-    background: rgba(7,9,14,0.95);
+    background: #07090e;
     flex: 0 0 auto;
     white-space: nowrap;
     position: relative;
@@ -161,6 +157,7 @@
     display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 6px; padding: 6px 10px 4px;
     border-bottom: 1px solid var(--border);
+    background: #030406; /* mind30 solid */
     max-width: 100%; min-width: 0; width: 100%;
     box-sizing: border-box;
   }
@@ -188,7 +185,8 @@
   /* ===== LIVE WIRE ===== */
   .livewire {
     height: 22px; overflow: hidden; border-bottom: 1px solid var(--border);
-    background: rgba(0,0,0,0.55); display:flex; align-items:center;
+    background: #030406; /* mind30 solid opaque */
+    display:flex; align-items:center;
     font-size: 9px; letter-spacing: 0.08em; color: var(--cyan);
   }
   .livewire .tag {
@@ -706,7 +704,7 @@
   .lang-toggle {
     display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; margin-left:6px;
     flex: 0 0 auto;
-    background: rgba(7,9,14,0.95);
+    background: #07090e;
     position: relative;
     z-index: 2;
   }
@@ -1051,7 +1049,7 @@
 
 
   .share-btn {
-    background: rgba(7,14,18,0.96);
+    background: #07090e;
     border: 1px solid rgba(77,224,255,0.45);
     color: var(--cyan);
     font: inherit; font-size: 8px; letter-spacing: 0.14em;
@@ -1185,7 +1183,7 @@
     color: var(--neon);
   }
 
-  /* ===== TOPBAR RIGHT CLUSTER (mind29) — no crush / pink bleed ===== */
+  /* ===== TOPBAR RIGHT CLUSTER (mind30) — no crush / pink bleed ===== */
   .topbar .tb-chips {
     position: relative;
     z-index: 3;
@@ -1211,7 +1209,7 @@
   .desk > .livewire {
     position: relative;
     z-index: 40;
-    background: rgba(3,4,6,0.96);
+    background: #030406;
   }
   .desk > .stage {
     position: relative;
@@ -1941,31 +1939,43 @@
   }
 
 
-  /* ===== mind29 FINAL: chrome above décor, clip pink bleed ===== */
+  /* ===== mind30 FINAL: opaque chrome, no ambient pink, landscape chip room ===== */
   .desk > .topbar {
     position: relative;
     z-index: 50;
-    background: rgba(3,4,6,0.98);
+    background: #030406;
+    border-bottom: 1px solid var(--border);
   }
   .desk > .agentbar,
   .desk > .livewire {
     position: relative;
     z-index: 40;
-    background: rgba(3,4,6,0.96);
+    background: #030406;
+    border-bottom: 1px solid var(--border);
   }
-  /* Always clip stage horizontally so Mind canvas cannot paint into topbar */
+  /* Always clip stage so Floor/Mind pink glow cannot paint into chrome */
   .desk > .stage {
     position: relative;
     z-index: 1;
+    overflow: hidden !important;
     overflow-x: clip !important;
   }
+  html.touch-device .desk > .stage {
+    /* page may scroll, but floor canvas must stay clipped from chrome */
+    overflow-x: clip !important;
+    overflow-y: visible;
+  }
   .center,
-  .mind-wrap {
+  .mind-wrap,
+  .swarm-floor,
+  .floor-stage {
     overflow: hidden !important;
     isolation: isolate;
   }
-  #armillary {
+  #armillary,
+  #floorCanvas {
     clip-path: inset(0);
+    max-width: 100%;
   }
   /* Right-cluster never shrinks under each other */
   .topbar .lang-toggle,
@@ -1991,6 +2001,48 @@
       max-width: 100%;
     }
   }
+
+  /* Landscape iPad / short touch: tighter chips, wrap OK, no crush */
+  @media (orientation: landscape) and (max-height: 1024px) {
+    html.touch-device .topbar .tb-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      row-gap: 4px;
+      margin-left: auto;
+      justify-content: flex-end;
+      max-width: min(100%, 420px);
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    html.touch-device .topbar .tb-status {
+      flex-wrap: wrap;
+      gap: 6px;
+      row-gap: 4px;
+    }
+    html.touch-device .topbar .lang-toggle {
+      margin-left: 4px;
+    }
+    html.touch-device .topbar .lang-toggle button {
+      min-width: 32px;
+      min-height: 28px;
+      padding: 3px 8px;
+      font-size: 8px;
+    }
+    html.touch-device .topbar .swarm-pill,
+    html.touch-device .topbar .paper-tag,
+    html.touch-device .topbar .share-btn {
+      min-height: 28px;
+      padding: 3px 8px;
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      gap: 4px;
+    }
+    html.touch-device .topbar .swarm-pill { padding: 3px 8px; }
+    html.touch-device .topbar .paper-tag { padding: 3px 7px; }
+    html.touch-device .topbar .share-btn { padding: 3px 9px; margin-left: 0; }
+  }
+
   /* Mind density: give sides a touch more air on mid widths */
   @media (min-width: 901px) and (max-width: 1280px) {
     .desk.view-mind .main {
@@ -2226,7 +2278,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind29</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind30</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -2238,8 +2290,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind29"></script>
-<script src="/mind.js?v=20261024mind29"></script>
+<script src="/floor.js?v=20261024mind30"></script>
+<script src="/mind.js?v=20261024mind30"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -2313,7 +2365,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind29',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind30',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -2393,7 +2445,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind29',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind30',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',

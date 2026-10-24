@@ -215,10 +215,10 @@
     const dim = p.z > 0.2 ? 0.55 : 1;
     ctx.save(); ctx.translate(p.x, p.y);
     ctx.globalCompositeOperation = 'lighter';
-    /* mind29: tighter aura so EDGE pink does not bloom into chrome */
-    const glowR = s * 1.85;
-    const g = ctx.createRadialGradient(0, 0, s * 0.45, 0, 0, glowR);
-    g.addColorStop(0, hexA(b.color, (0.32 + b.pulse * 0.28 + I * 0.10) * dim)); g.addColorStop(1, 'rgba(0,0,0,0)');
+    /* mind30: keep aura inside stage clip — no chrome wash */
+    const glowR = s * 1.55;
+    const g = ctx.createRadialGradient(0, 0, s * 0.4, 0, 0, glowR);
+    g.addColorStop(0, hexA(b.color, (0.26 + b.pulse * 0.22 + I * 0.08) * dim)); g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, glowR, 0, 7); ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = dim;
