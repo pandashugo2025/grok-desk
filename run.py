@@ -176,6 +176,26 @@ class DeskHandler(SimpleHTTPRequestHandler):
 
         params = {k: (v[0] if v else "") for k, v in parse_qs(qs).items()}
 
+        if path in ("/health", "/api/health", "/healthz", "/api/healthz"):
+            # Lightweight liveness for Render health checks + client wake probes.
+            with STATE_LOCK:
+                alive = bool(STATE.get("agents_alive"))
+                cycle = int(STATE.get("cycle") or 0)
+                boot = STATE.get("boot_ts")
+                err = STATE.get("error")
+            self._json({
+                "ok": True,
+                "service": "grok-desk",
+                "paper_only": True,
+                "agents_alive": alive,
+                "cycle": cycle,
+                "boot_ts": boot,
+                "uptime_s": round(time.time() - float(boot or time.time()), 1),
+                "error": err,
+                "tz": HK_LABEL,
+            })
+            return
+
         if path in ("/api/state", "/api/state.json"):
             with STATE_LOCK:
                 payload = dict(STATE)
@@ -358,7 +378,7 @@ def main() -> None:
     print("=" * 60, flush=True)
     print("GROK DESK — PAPER / SIMULATION ONLY", flush=True)
     print(f"UI:     {url}", flush=True)
-    print(f"API:    {url}api/state | wallets | watch | stream", flush=True)
+    print(f"API:    {url}health | api/state | wallets | watch | stream", flush=True)
     print(f"State:  {ROOT / 'state' / 'latest.json'}", flush=True)
     print(f"Cycles: {ROOT / 'output' / 'cycles.jsonl'}", flush=True)
     print(f"Interval: {args.interval}s | size: ${args.size} paper", flush=True)

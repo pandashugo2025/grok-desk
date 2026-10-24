@@ -965,9 +965,98 @@
     .topbar .metrics .m { min-width: 0; }
     .agentbar { overscroll-behavior-x: contain; touch-action: pan-x; }
   }
+
+  /* ===== WAKE / COLD-START BANNER (Render free sleep) ===== */
+  #wakeBanner {
+    display: none;
+    position: fixed; inset: 0; z-index: 9999;
+    align-items: center; justify-content: center;
+    padding: 24px 16px;
+    background: rgba(3,4,6,0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #wakeBanner.on { display: flex; }
+  #wakeBanner .wake-card {
+    width: min(420px, 100%);
+    border: 1px solid rgba(77,224,255,0.35);
+    border-radius: 12px;
+    background: linear-gradient(160deg, rgba(12,18,28,0.98), rgba(6,8,14,0.98));
+    box-shadow: 0 0 40px rgba(77,224,255,0.12), 0 20px 60px rgba(0,0,0,0.55);
+    padding: 22px 20px 18px;
+    text-align: center;
+  }
+  #wakeBanner .wake-spin {
+    width: 28px; height: 28px; margin: 0 auto 14px;
+    border: 2px solid rgba(77,224,255,0.25);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: wakeSpin 0.85s linear infinite;
+  }
+  @keyframes wakeSpin { to { transform: rotate(360deg); } }
+  #wakeBanner .wake-title {
+    font-size: 13px; letter-spacing: 0.18em; color: #e8f0ff;
+    margin-bottom: 8px;
+  }
+  #wakeBanner .wake-sub {
+    font-size: 11px; line-height: 1.55; color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  #wakeBanner .wake-sub b { color: var(--cyan); font-weight: 600; }
+  #wakeBanner .wake-actions {
+    margin-top: 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  }
+  #wakeBanner .wake-actions button {
+    font: inherit; font-size: 10px; letter-spacing: 0.14em;
+    padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(77,224,255,0.4); background: rgba(77,224,255,0.1);
+    color: var(--cyan);
+  }
+  #wakeBanner .wake-actions button.ghost {
+    border-color: var(--border); background: transparent; color: var(--muted);
+  }
+  #sleepTip {
+    display: none;
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 9000;
+    max-width: 520px; margin: 0 auto;
+    border: 1px solid rgba(255,200,87,0.35);
+    background: rgba(18,14,6,0.94);
+    color: #ffc857;
+    border-radius: 10px;
+    padding: 10px 36px 10px 12px;
+    font-size: 11px; line-height: 1.45; letter-spacing: 0.04em;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  }
+  #sleepTip.on { display: block; }
+  #sleepTip button {
+    position: absolute; top: 6px; right: 8px;
+    background: transparent; border: 0; color: var(--muted);
+    font: inherit; font-size: 14px; cursor: pointer; line-height: 1; padding: 4px 6px;
+  }
+  @media (max-width: 768px) {
+    #wakeBanner .wake-card { padding: 20px 16px 16px; }
+    #sleepTip { bottom: max(12px, env(safe-area-inset-bottom)); left: 10px; right: 10px; }
+  }
+
 </style>
 </head>
 <body>
+
+<div id="wakeBanner" role="status" aria-live="polite" aria-hidden="true">
+  <div class="wake-card">
+    <div class="wake-spin" aria-hidden="true"></div>
+    <div class="wake-title" id="wakeTitle">喚醒交易台中…</div>
+    <div class="wake-sub" id="wakeSub">免費方案閒置約 15 分鐘會休眠。<br>首次開啟約需 <b>30–50 秒</b>，請稍候。</div>
+    <div class="wake-actions">
+      <button type="button" id="wakeRetryBtn">重試連線</button>
+      <button type="button" class="ghost" id="wakeReloadBtn">重新整理</button>
+    </div>
+  </div>
+</div>
+<div id="sleepTip" role="note">
+  <button type="button" id="sleepTipDismiss" aria-label="Dismiss">×</button>
+  <span id="sleepTipText">提示：Render 免費方案約 15 分鐘無人打開會自動休眠；分享連結給別人時，對方首次點開可能要等 30–50 秒喚醒。</span>
+</div>
 <div class="desk view-grid" id="deskRoot">
   <div class="topbar">
     <div class="logo">GROK <span>DESK</span></div>
@@ -1153,7 +1242,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind17</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind18</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1165,8 +1254,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind17"></script>
-<script src="/mind.js?v=20261024mind17"></script>
+<script src="/floor.js?v=20261024mind18"></script>
+<script src="/mind.js?v=20261024mind18"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1212,12 +1301,19 @@ const I18N = {
     cmd_stack:'指令堆疊', handoff_log:'交接紀錄',
     deck_bal:'台面餘額 · 紙上', bots_holding:'Bot 持倉狀態', activity:'活動流',
     stat_win:'勝率', stat_dd:'最大回撤', stat_fills:'成交', stat_spot:'現貨',
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind17',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind18',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
     foot_demo:'示範資料 · 紙上／模擬', foot_live:'即時行情 · 紙上／模擬',
-    foot_err:'⚠ /api/state 無法連線 — run.py 有開嗎？',
+    foot_err:'⚠ 交易台連線中斷 — 可能正在喚醒（約 30–50 秒）',
+    wake_title:'喚醒交易台中…',
+    wake_sub:'免費方案閒置約 15 分鐘會休眠。<br>首次開啟約需 <b>30–50 秒</b>，請稍候。',
+    wake_retry:'重試連線',
+    wake_reload:'重新整理',
+    wake_elapsed:(s)=>`已等待 <b>${s}s</b> · 正在探測 /health`,
+    sleep_tip:'提示：Render 免費方案約 15 分鐘無人打開會自動休眠；分享連結給別人時，對方首次點開可能要等 30–50 秒喚醒。',
+
     cycle:'週期', conf:'信心',
     g_spot:'現貨相對開盤', g_ttr:'剩餘時間', g_vol:'短線波動', g_mom:'動量',
     g_imb:'盤口失衡', g_basis:'永續基差',
@@ -1255,12 +1351,19 @@ const I18N = {
     cmd_stack:'COMMAND STACK', handoff_log:'HANDOFF LOG',
     deck_bal:'DECK BALANCE · PAPER', bots_holding:'BOTS ARE HOLDING', activity:'ACTIVITY',
     stat_win:'WIN', stat_dd:'MAX DD', stat_fills:'FILLS', stat_spot:'SPOT',
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind17',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind18',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
     foot_demo:'DEMO DATA · PAPER / SIMULATION', foot_live:'LIVE FEEDS · PAPER / SIMULATION',
-    foot_err:'⚠ /api/state unreachable — is run.py up?',
+    foot_err:'⚠ Desk unreachable — may be waking (≈30–50s)',
+    wake_title:'Waking the desk…',
+    wake_sub:'Free tier sleeps after ~15 min idle.<br>First open can take <b>30–50s</b> — hang tight.',
+    wake_retry:'RETRY',
+    wake_reload:'RELOAD',
+    wake_elapsed:(s)=>`Waited <b>${s}s</b> · probing /health`,
+    sleep_tip:'Tip: Render free tier sleeps after ~15 min with no visitors; shared links may need 30–50s to wake on first open.',
+
     cycle:'CYCLE', conf:'conf',
     g_spot:'SPOT VS OPEN', g_ttr:'TIME LEFT', g_vol:'SHORT-TERM VOL', g_mom:'MOMENTUM',
     g_imb:'BOOK IMBALANCE', g_basis:'PERP BASIS',
@@ -1299,6 +1402,9 @@ function setLang(next) {
   lang = next === 'en' ? 'en' : 'zh';
   localStorage.setItem('grokDeskLang', lang);
   applyStaticI18n();
+  if (typeof updateWakeCopy === 'function') updateWakeCopy();
+  const st = $('sleepTipText');
+  if (st) st.textContent = t('sleep_tip');
 }
 function setSidePane(pane) {
   sidePane = pane === 'cmd' ? 'cmd' : 'signals';
@@ -1642,15 +1748,110 @@ function render(s) {
   drawPnl(pf.equity_curve||[]);
 }
 
-async function tick() {
-  try {
-    const r = await fetch('/api/state?_=' + Date.now());
-    const s = await r.json();
-    render(s);
-  } catch (e) {
-    $('footWarn').textContent = t('foot_err');
+/* ---- cold-start / reconnect wake UX (Render free sleep) ---- */
+const wake = {
+  fails: 0,
+  shownAt: 0,
+  timer: null,
+  probing: false,
+};
+function setWakeVisible(on) {
+  const el = $('wakeBanner');
+  if (!el) return;
+  el.classList.toggle('on', !!on);
+  el.setAttribute('aria-hidden', on ? 'false' : 'true');
+  if (on && !wake.shownAt) {
+    wake.shownAt = Date.now();
+    updateWakeCopy();
+    clearInterval(wake.timer);
+    wake.timer = setInterval(updateWakeCopy, 500);
+  }
+  if (!on) {
+    wake.shownAt = 0;
+    clearInterval(wake.timer);
+    wake.timer = null;
   }
 }
+function updateWakeCopy() {
+  const title = $('wakeTitle');
+  const sub = $('wakeSub');
+  const retry = $('wakeRetryBtn');
+  const reload = $('wakeReloadBtn');
+  if (title) title.textContent = t('wake_title');
+  if (retry) retry.textContent = t('wake_retry');
+  if (reload) reload.textContent = t('wake_reload');
+  if (sub) {
+    const elapsed = wake.shownAt ? Math.max(0, Math.round((Date.now() - wake.shownAt) / 1000)) : 0;
+    sub.innerHTML = t('wake_sub') + (elapsed ? `<br>${t('wake_elapsed', elapsed)}` : '');
+  }
+}
+async function probeHealth() {
+  if (wake.probing) return false;
+  wake.probing = true;
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch('/health?_=' + Date.now(), { signal: ctrl.signal, cache: 'no-store' });
+    clearTimeout(to);
+    if (!r.ok) return false;
+    const j = await r.json().catch(() => ({}));
+    return !!(j && j.ok);
+  } catch (_) {
+    return false;
+  } finally {
+    wake.probing = false;
+  }
+}
+function maybeShowSleepTip() {
+  try {
+    if (localStorage.getItem('grokDeskSleepTipV1') === '1') return;
+  } catch (_) {}
+  const tip = $('sleepTip');
+  const txt = $('sleepTipText');
+  if (txt) txt.textContent = t('sleep_tip');
+  if (tip) tip.classList.add('on');
+}
+function dismissSleepTip() {
+  const tip = $('sleepTip');
+  if (tip) tip.classList.remove('on');
+  try { localStorage.setItem('grokDeskSleepTipV1', '1'); } catch (_) {}
+}
+async function tick() {
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 12000);
+    const r = await fetch('/api/state?_=' + Date.now(), { signal: ctrl.signal, cache: 'no-store' });
+    clearTimeout(to);
+    if (!r.ok) throw new Error('state ' + r.status);
+    const s = await r.json();
+    wake.fails = 0;
+    setWakeVisible(false);
+    const fw = $('footWarn');
+    if (fw && (fw.textContent || '').includes('⚠')) fw.textContent = '';
+    render(s);
+  } catch (e) {
+    wake.fails += 1;
+    const fw = $('footWarn');
+    if (fw) fw.textContent = t('foot_err');
+    // Show wake overlay after first miss so cold-start / mid-session sleep is obvious on iPad.
+    if (wake.fails >= 1) {
+      setWakeVisible(true);
+      updateWakeCopy();
+      // Soft probe health in parallel — when ok, next tick() will recover.
+      probeHealth();
+    }
+  }
+}
+(function bindWakeUi() {
+  const retry = $('wakeRetryBtn');
+  const reload = $('wakeReloadBtn');
+  const dismiss = $('sleepTipDismiss');
+  if (retry) retry.addEventListener('click', () => { wake.fails = Math.max(wake.fails, 1); tick(); probeHealth(); });
+  if (reload) reload.addEventListener('click', () => location.reload());
+  if (dismiss) dismiss.addEventListener('click', dismissSleepTip);
+  // Show tip once per browser after first successful paint window.
+  setTimeout(maybeShowSleepTip, 4500);
+})();
 
 $('viewToggle').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-view]');

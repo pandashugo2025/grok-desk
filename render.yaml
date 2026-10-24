@@ -5,7 +5,7 @@ services:
     name: grok-desk
     runtime: docker
     plan: free
-    healthCheckPath: /api/state
+    healthCheckPath: /health
     # PORT is set automatically by Render; Dockerfile CMD reads it.
     envVars:
       - key: GROK_SPIDER_ROOT
