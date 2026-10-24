@@ -966,6 +966,236 @@
     .agentbar { overscroll-behavior-x: contain; touch-action: pan-x; }
   }
 
+
+  /* ===== FOLLOW MOBILE DENSITY (mind19) ===== */
+  .follow-toolbar .ft-filters,
+  .follow-toolbar .ft-search,
+  .follow-toolbar .ft-actions,
+  .follow-toolbar .ft-meta {
+    display: contents; /* desktop: flat flex wrap as before */
+  }
+  .follow-detail {
+    position: relative;
+  }
+  .follow-detail .fd-sticky {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    align-items: center;
+    gap: 8px;
+    margin: -10px -12px 10px;
+    padding: 8px 10px;
+    background: rgba(8,11,18,0.96);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .follow-detail .fd-sticky .fd-back {
+    display: inline-flex;
+    margin-bottom: 0;
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 10px;
+    color: var(--cyan);
+    border-color: rgba(77,224,255,0.4);
+    flex: 0 0 auto;
+    -webkit-tap-highlight-color: rgba(77,224,255,0.2);
+    touch-action: manipulation;
+  }
+  .follow-detail .fd-sticky-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .follow-detail .fd-sticky-pnl {
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* phones + narrow tablets: denser toolbar rows */
+  @media (max-width: 900px) {
+    .follow-toolbar {
+      gap: 8px;
+      align-items: stretch;
+      max-width: 100%;
+      overflow: visible;
+    }
+    .follow-toolbar .ft-filters,
+    .follow-toolbar .ft-search,
+    .follow-toolbar .ft-actions,
+    .follow-toolbar .ft-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 100%;
+      align-items: center;
+    }
+    .follow-toolbar .ft-filters label {
+      flex: 1 1 calc(33.33% - 6px);
+      min-width: 96px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 3px;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+    }
+    .follow-toolbar .ft-search label {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 3px;
+      font-size: 8px;
+    }
+    .follow-toolbar select,
+    .follow-toolbar input {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      min-height: 40px;
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+    .follow-toolbar .ft-actions {
+      gap: 8px;
+    }
+    .follow-toolbar .btn-refresh {
+      flex: 1 1 auto;
+      min-height: 40px;
+      font-size: 10px;
+    }
+    .follow-toolbar .live-pill {
+      margin-left: 0;
+      min-height: 40px;
+      padding: 8px 10px;
+    }
+    .follow-toolbar .interval-tog button {
+      min-height: 40px;
+      padding: 8px 10px;
+      font-size: 9px;
+    }
+    .follow-toolbar .ft-meta {
+      justify-content: space-between;
+      padding-top: 2px;
+    }
+    .follow-toolbar .hint {
+      margin-left: 0;
+      width: auto;
+      font-size: 8px;
+    }
+    /* when wallet detail open: hide bulky filters, keep sticky back */
+    .follow-panel.detail-open .follow-toolbar {
+      display: none;
+    }
+    .follow-detail .fd-sticky {
+      display: flex;
+    }
+    /* legacy lone .fd-back outside sticky (safety) */
+    .follow-detail > .fd-back { display: none; }
+    .follow-detail {
+      padding-top: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .follow-toolbar .ft-filters label {
+      flex: 1 1 calc(50% - 6px);
+    }
+    .follow-panel {
+      padding: 6px 8px;
+      gap: 6px;
+    }
+    table.follow-table th:nth-child(5),
+    table.follow-table td:nth-child(5) {
+      display: none; /* hide strategy chip column on phone — still in detail */
+    }
+    .follow-detail .fd-head {
+      flex-wrap: wrap;
+    }
+    .follow-detail .fd-link {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .act-row {
+      font-size: 10px;
+      padding: 8px 0;
+      gap: 10px;
+    }
+    .act-row .side { flex-basis: 48px; font-size: 10px; }
+  }
+
+  @media (max-width: 390px) {
+    .follow-toolbar .ft-filters label {
+      flex: 1 1 100%;
+    }
+    .follow-toolbar .ft-actions .live-pill span[data-i18n],
+    .follow-toolbar .live-pill > span:not(.ldot) {
+      /* keep pill readable but tighter */
+    }
+  }
+
+  /* iPad / touch: same detail-as-page + sticky back even in landscape >900px */
+  html.touch-device .follow-toolbar .ft-filters,
+  html.touch-device .follow-toolbar .ft-search,
+  html.touch-device .follow-toolbar .ft-actions,
+  html.touch-device .follow-toolbar .ft-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    align-items: center;
+  }
+  html.touch-device .follow-toolbar {
+    gap: 8px;
+    align-items: stretch;
+  }
+  html.touch-device .follow-toolbar .ft-filters label {
+    flex: 1 1 calc(33.33% - 6px);
+    min-width: 110px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+  }
+  html.touch-device .follow-toolbar .ft-search label {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  html.touch-device .follow-toolbar select,
+  html.touch-device .follow-toolbar input {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    font-size: 12px;
+  }
+  html.touch-device .follow-toolbar .hint { margin-left: 0; }
+  html.touch-device .follow-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(240px, 48%) 1fr;
+  }
+  html.touch-device .follow-panel.detail-open .follow-table-wrap { display: none; }
+  html.touch-device .follow-panel.detail-open .follow-body { grid-template-rows: 1fr; }
+  html.touch-device .follow-panel.detail-open .follow-toolbar { display: none; }
+  html.touch-device .follow-panel.detail-open .follow-detail {
+    display: flex;
+    max-height: min(78dvh, 820px);
+  }
+  html.touch-device .follow-detail .fd-sticky { display: flex; }
+  html.touch-device .follow-detail .fd-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  html.touch-device .follow-detail > .fd-back { display: none; }
+
   /* ===== WAKE / COLD-START BANNER (Render free sleep) ===== */
   #wakeBanner {
     display: none;
@@ -1148,40 +1378,48 @@
 
   <!-- FOLLOW / 跟倉觀察 -->
   <div class="follow-panel" id="followPanel">
-    <div class="follow-toolbar">
-      <label><span data-i18n="follow_strat">策略</span>
-        <select id="followStrat">
-          <option value="all" data-i18n="follow_all">全部</option>
-        </select>
-      </label>
-      <label><span data-i18n="follow_min_pnl">最低損益</span>
-        <select id="followMinPnl">
-          <option value="">—</option>
-          <option value="1000000">≥ $1M</option>
-          <option value="5000000">≥ $5M</option>
-          <option value="10000000">≥ $10M</option>
-        </select>
-      </label>
-      <label><span data-i18n="follow_sort">排序</span>
-        <select id="followSort">
-          <option value="rank" data-i18n="follow_sort_rank">名次</option>
-          <option value="pnl_desc" data-i18n="follow_sort_pnl_desc">損益高→低</option>
-          <option value="pnl_asc" data-i18n="follow_sort_pnl_asc">損益低→高</option>
-          <option value="vol_desc" data-i18n="follow_sort_vol_desc">成交量高→低</option>
-        </select>
-      </label>
-      <label><span data-i18n="follow_search">搜尋</span>
-        <input id="followQ" type="search" placeholder="name / 0x…" autocomplete="off" />
-      </label>
-      <button type="button" class="btn-refresh" id="followRefreshBtn" data-i18n="follow_refresh">刷新蜘蛛</button>
-      <span class="live-pill off" id="followLivePill" title="SSE"><span class="ldot"></span><span data-i18n="follow_live">準即時·SSE</span></span>
-      <span class="interval-tog" id="followInterval" title="poll">
-        <button type="button" data-iv="5">5s</button>
-        <button type="button" data-iv="15" class="on">15s</button>
-        <button type="button" data-iv="30">30s</button>
-      </span>
-      <span class="csv-age" id="followCsvAge"><span data-i18n="follow_csv_age">CSV 年齡</span> <b>—</b></span>
-      <span class="hint" id="followHint"><span data-i18n="follow_hint">前百錢包 · 僅觀察</span> · <b id="followCount">0</b></span>
+    <div class="follow-toolbar" id="followToolbar">
+      <div class="ft-filters">
+        <label><span data-i18n="follow_strat">策略</span>
+          <select id="followStrat">
+            <option value="all" data-i18n="follow_all">全部</option>
+          </select>
+        </label>
+        <label><span data-i18n="follow_min_pnl">最低損益</span>
+          <select id="followMinPnl">
+            <option value="">—</option>
+            <option value="1000000">≥ $1M</option>
+            <option value="5000000">≥ $5M</option>
+            <option value="10000000">≥ $10M</option>
+          </select>
+        </label>
+        <label><span data-i18n="follow_sort">排序</span>
+          <select id="followSort">
+            <option value="rank" data-i18n="follow_sort_rank">名次</option>
+            <option value="pnl_desc" data-i18n="follow_sort_pnl_desc">損益高→低</option>
+            <option value="pnl_asc" data-i18n="follow_sort_pnl_asc">損益低→高</option>
+            <option value="vol_desc" data-i18n="follow_sort_vol_desc">成交量高→低</option>
+          </select>
+        </label>
+      </div>
+      <div class="ft-search">
+        <label><span data-i18n="follow_search">搜尋</span>
+          <input id="followQ" type="search" placeholder="name / 0x…" autocomplete="off" enterkeyhint="search" />
+        </label>
+      </div>
+      <div class="ft-actions">
+        <button type="button" class="btn-refresh" id="followRefreshBtn" data-i18n="follow_refresh">刷新蜘蛛</button>
+        <span class="live-pill off" id="followLivePill" title="SSE"><span class="ldot"></span><span data-i18n="follow_live">準即時·SSE</span></span>
+        <span class="interval-tog" id="followInterval" title="poll">
+          <button type="button" data-iv="5">5s</button>
+          <button type="button" data-iv="15" class="on">15s</button>
+          <button type="button" data-iv="30">30s</button>
+        </span>
+      </div>
+      <div class="ft-meta">
+        <span class="csv-age" id="followCsvAge"><span data-i18n="follow_csv_age">CSV 年齡</span> <b>—</b></span>
+        <span class="hint" id="followHint"><span data-i18n="follow_hint">前百錢包 · 僅觀察</span> · <b id="followCount">0</b></span>
+      </div>
     </div>
     <div class="follow-body">
       <div class="follow-table-wrap">
@@ -1242,7 +1480,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind18</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind19</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1254,8 +1492,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind18"></script>
-<script src="/mind.js?v=20261024mind18"></script>
+<script src="/floor.js?v=20261024mind19"></script>
+<script src="/mind.js?v=20261024mind19"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1301,7 +1539,7 @@ const I18N = {
     cmd_stack:'指令堆疊', handoff_log:'交接紀錄',
     deck_bal:'台面餘額 · 紙上', bots_holding:'Bot 持倉狀態', activity:'活動流',
     stat_win:'勝率', stat_dd:'最大回撤', stat_fills:'成交', stat_spot:'現貨',
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind18',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind19',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1351,7 +1589,7 @@ const I18N = {
     cmd_stack:'COMMAND STACK', handoff_log:'HANDOFF LOG',
     deck_bal:'DECK BALANCE · PAPER', bots_holding:'BOTS ARE HOLDING', activity:'ACTIVITY',
     stat_win:'WIN', stat_dd:'MAX DD', stat_fills:'FILLS', stat_spot:'SPOT',
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind18',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind19',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
@@ -2065,13 +2303,18 @@ async function selectFollowWallet(addr, fetchDetail) {
   const noteVal = notes[addr] || '';
   const profileUrl = 'https://polymarket.com/profile/' + addr;
 
-  // Shell first (header + notes + loading) so UI feels instant
+  // Shell first (sticky back + header + notes + loading) so UI feels instant on phone/iPad
+  const pnlCls = pnl>=0?'pnl-pos':'pnl-neg';
   detail.innerHTML = `
-    <button type="button" class="fd-back" id="followBack">${t('follow_back_list')}</button>
+    <div class="fd-sticky" id="followSticky">
+      <button type="button" class="fd-back" id="followBack">${t('follow_back_list')}</button>
+      <span class="fd-sticky-name">${name}</span>
+      <span class="fd-sticky-pnl ${pnlCls}">${fmtCompact(pnl)}</span>
+    </div>
     <div class="fd-head">
       <div>
         <div class="fd-name">${name}</div>
-        <div class="fd-meta">${escapeHtml(shortAddr(addr))} · <span class="${pnl>=0?'pnl-pos':'pnl-neg'}">${fmtCompact(pnl)}</span>
+        <div class="fd-meta">${escapeHtml(shortAddr(addr))} · <span class="${pnlCls}">${fmtCompact(pnl)}</span>
           · <span class="tag-strat ${stratClass(w.suspected_strategy)}">${escapeHtml(stratLabel(w.suspected_strategy))}</span>
           · ${t('follow_paper')}</div>
         <div class="fd-meta">${escapeHtml(w.strategy_reason||'')}</div>
@@ -2159,8 +2402,13 @@ async function selectFollowWallet(addr, fetchDetail) {
       ? mkts.slice(0, 12).map(m => `<span class="mkt-chip">${escapeHtml(m.title)} · ${m.hits}</span>`).join('')
       : `<div class="fd-status empty">—</div>`;
   }
-  // mobile: scroll detail into view
-  try { detail.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_){}
+  // mobile/iPad: keep sticky back visible at top of detail pane
+  try {
+    const sticky = $('followSticky');
+    if (sticky) sticky.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    detail.scrollTop = 0;
+  } catch(_){}
 }
 
 async function refreshSpider() {
