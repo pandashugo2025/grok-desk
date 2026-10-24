@@ -823,27 +823,19 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
     .topbar {
-      flex-wrap: wrap;
+      /* mind26 stacked rows own the layout */
       gap: 8px;
       padding: max(8px, env(safe-area-inset-top)) 10px 8px;
-      align-items: center;
+      align-items: stretch;
     }
     .logo { font-size: 12px; letter-spacing: 0.16em; }
     .view-toggle { margin-left: 0; }
     .view-toggle button {
       padding: 8px 12px; min-height: 40px; font-size: 9px;
     }
-    .metrics {
-      margin-left: 0; gap: 12px; width: 100%;
-      order: 5; justify-content: space-between;
-      padding-top: 4px; border-top: 1px solid rgba(120,160,200,0.1);
-    }
-    .metrics .m b { font-size: 12px; }
-    .clock-wrap { margin-left: auto; }
     .clock { font-size: 16px; }
-    .swarm-pill { margin-left: 0; padding: 6px 10px; min-height: 32px; }
-    .paper-tag { margin-left: 0; padding: 6px 10px; }
-    .lang-toggle { margin-left: auto; }
+    .swarm-pill { padding: 6px 10px; min-height: 40px; }
+    .paper-tag { padding: 6px 10px; min-height: 40px; display:inline-flex; align-items:center; }
 
     .agentbar {
       display: flex;
@@ -1103,7 +1095,180 @@
   .follow-toolbar .csv-age.stale b { color: #ffc857; }
   .follow-toolbar .csv-age.missing b { color: var(--red); }
 
-  /* ===== FOLLOW MOBILE DENSITY (mind25) ===== */
+
+  /* ===== TOPBAR DENSITY (mind26) ===== */
+  .topbar .tb-row,
+  .topbar .tb-chips {
+    display: contents; /* desktop: flat flex children */
+  }
+  .topbar {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  @media (max-width: 900px) {
+    .topbar {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      flex-wrap: nowrap;
+      gap: 8px;
+      padding: max(8px, env(safe-area-inset-top)) 10px 8px;
+    }
+    .topbar .tb-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      min-width: 0;
+    }
+    .topbar .tb-primary {
+      justify-content: flex-start;
+    }
+    .topbar .tb-primary .logo { flex: 0 0 auto; }
+    .topbar .tb-primary .view-toggle { flex: 1 1 auto; min-width: 0; }
+    .topbar .tb-primary .view-toggle button {
+      flex: 1 1 auto;
+      min-height: 40px;
+      padding: 8px 10px;
+    }
+    .topbar .tb-primary .lang-toggle { margin-left: auto; flex: 0 0 auto; }
+    .topbar .tb-stats {
+      order: 0;
+      padding-top: 6px;
+      border-top: 1px solid rgba(120,160,200,0.12);
+    }
+    .topbar .tb-stats .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      width: 100%;
+      margin: 0;
+      gap: 8px;
+      order: 0;
+      padding: 0;
+      border: 0;
+      justify-content: initial;
+    }
+    .topbar .tb-stats .metrics .m {
+      min-width: 0;
+      align-items: flex-start;
+    }
+    .topbar .tb-stats .metrics .m b {
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .topbar .tb-stats .metrics .m em {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .topbar .tb-status {
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .topbar .tb-status .clock-wrap {
+      margin-left: 0;
+      text-align: left;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .topbar .tb-chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      justify-content: flex-end;
+      max-width: 100%;
+    }
+    .topbar .swarm-pill,
+    .topbar .paper-tag,
+    .topbar .share-btn {
+      margin-left: 0;
+      min-height: 40px;
+    }
+    .topbar .share-btn { flex: 0 0 auto; }
+  }
+
+  @media (max-width: 390px) {
+    .topbar { gap: 6px; padding: max(6px, env(safe-area-inset-top)) 8px 6px; }
+    .topbar .tb-primary .view-toggle button {
+      padding: 8px 8px;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      min-height: 40px;
+    }
+    .topbar .tb-stats .metrics { gap: 6px; }
+    .topbar .tb-stats .metrics .m b { font-size: 12px; }
+    .topbar .tb-stats .metrics .m em { font-size: 7px; }
+    .topbar .tb-status .clock { font-size: 15px; }
+    .topbar .tb-status .clock-wrap small { display: none; }
+    .topbar .tb-chips { width: 100%; margin-left: 0; justify-content: stretch; }
+    .topbar .tb-chips .swarm-pill { flex: 1 1 auto; justify-content: center; }
+    .topbar .tb-chips .paper-tag { flex: 0 0 auto; }
+    .topbar .tb-chips .share-btn { flex: 1 1 auto; }
+  }
+
+  /* iPad / touch landscape: same stacked density without relying only on width */
+  html.touch-device .topbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 8px;
+    max-width: 100%;
+  }
+  html.touch-device .topbar .tb-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+  html.touch-device .topbar .tb-primary .view-toggle { flex: 1 1 auto; }
+  html.touch-device .topbar .tb-primary .view-toggle button { min-height: 40px; }
+  html.touch-device .topbar .tb-primary .lang-toggle { margin-left: auto; }
+  html.touch-device .topbar .tb-stats {
+    padding-top: 6px;
+    border-top: 1px solid rgba(120,160,200,0.12);
+  }
+  html.touch-device .topbar .tb-stats .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    margin: 0;
+    gap: 8px;
+    border: 0;
+    padding: 0;
+    order: 0;
+  }
+  html.touch-device .topbar .tb-status { justify-content: space-between; }
+  html.touch-device .topbar .tb-status .clock-wrap { margin-left: 0; text-align: left; }
+  html.touch-device .topbar .tb-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+    justify-content: flex-end;
+  }
+  html.touch-device .topbar .swarm-pill,
+  html.touch-device .topbar .paper-tag,
+  html.touch-device .topbar .share-btn {
+    margin-left: 0;
+    min-height: 40px;
+  }
+
+  /* wide touch tablets can keep a denser single-line status row */
+  @media (min-width: 901px) {
+    html.touch-device .topbar .tb-primary .view-toggle button { padding: 8px 12px; }
+  }
+
+  /* ===== FOLLOW MOBILE DENSITY (mind26) ===== */
   .follow-toolbar .ft-filters,
   .follow-toolbar .ft-search,
   .follow-toolbar .ft-actions,
@@ -1425,28 +1590,36 @@
 </div>
 <div class="desk view-grid" id="deskRoot">
   <div class="topbar">
-    <div class="logo">GROK <span>DESK</span></div>
-    <div class="view-toggle" id="viewToggle">
-      <button type="button" data-view="grid" class="on" data-i18n="btn_grid">群體網格</button>
-      <button type="button" data-view="mind" data-i18n="btn_mind">思維球網</button>
-      <button type="button" data-view="follow" data-i18n="btn_follow">跟倉觀察</button>
+    <div class="tb-row tb-primary">
+      <div class="logo">GROK <span>DESK</span></div>
+      <div class="view-toggle" id="viewToggle">
+        <button type="button" data-view="grid" class="on" data-i18n="btn_grid">群體網格</button>
+        <button type="button" data-view="mind" data-i18n="btn_mind">思維球網</button>
+        <button type="button" data-view="follow" data-i18n="btn_follow">跟倉觀察</button>
+      </div>
+      <div class="lang-toggle" id="langToggle" title="Language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="zh" class="on">繁中</button>
+      </div>
     </div>
-    <div class="lang-toggle" id="langToggle" title="Language">
-      <button type="button" data-lang="en">EN</button>
-      <button type="button" data-lang="zh" class="on">繁中</button>
+    <div class="tb-row tb-stats">
+      <div class="metrics">
+        <div class="m"><b id="acctVal">$10,000</b><em data-i18n="m_account">帳戶 · 紙上</em></div>
+        <div class="m"><b id="swarmPnl">$0.00</b><em data-i18n="m_pnl">群體損益</em></div>
+        <div class="m"><b id="cycleN">0</b><em data-i18n="m_cycle">週期</em></div>
+      </div>
     </div>
-    <div class="metrics">
-      <div class="m"><b id="acctVal">$10,000</b><em data-i18n="m_account">帳戶 · 紙上</em></div>
-      <div class="m"><b id="swarmPnl">$0.00</b><em data-i18n="m_pnl">群體損益</em></div>
-      <div class="m"><b id="cycleN">0</b><em data-i18n="m_cycle">週期</em></div>
+    <div class="tb-row tb-status">
+      <div class="clock-wrap">
+        <div class="clock" id="clock">00:00:00</div>
+        <small data-i18n="clock_sub">UTC · 下方亦顯示 HKT</small>
+      </div>
+      <div class="tb-chips">
+        <div class="swarm-pill"><span class="dot"></span><span id="swarmLabel">群體線上</span></div>
+        <div class="paper-tag" data-i18n="paper_tag">紙上 · 模擬</div>
+        <button type="button" class="share-btn" id="shareLinkBtn" data-i18n="share_btn" title="Copy share URL">分享連結</button>
+      </div>
     </div>
-    <div class="clock-wrap">
-      <div class="clock" id="clock">00:00:00</div>
-      <small data-i18n="clock_sub">UTC · 下方亦顯示 HKT</small>
-    </div>
-    <div class="swarm-pill"><span class="dot"></span><span id="swarmLabel">群體線上</span></div>
-    <div class="paper-tag" data-i18n="paper_tag">紙上 · 模擬</div>
-    <button type="button" class="share-btn" id="shareLinkBtn" data-i18n="share_btn" title="Copy share URL">分享連結</button>
   </div>
 <div id="shareToast" role="status" aria-live="polite"></div>
 
@@ -1619,7 +1792,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind25</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind26</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1631,8 +1804,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind25"></script>
-<script src="/mind.js?v=20261024mind25"></script>
+<script src="/floor.js?v=20261024mind26"></script>
+<script src="/mind.js?v=20261024mind26"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1701,7 +1874,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind25',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind26',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1776,7 +1949,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind25',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind26',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
