@@ -967,7 +967,7 @@
   }
 
 
-  /* ===== FOLLOW MOBILE DENSITY (mind19) ===== */
+  /* ===== FOLLOW MOBILE DENSITY (mind20) ===== */
   .follow-toolbar .ft-filters,
   .follow-toolbar .ft-search,
   .follow-toolbar .ft-actions,
@@ -1480,7 +1480,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind19</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind20</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1492,8 +1492,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind19"></script>
-<script src="/mind.js?v=20261024mind19"></script>
+<script src="/floor.js?v=20261024mind20"></script>
+<script src="/mind.js?v=20261024mind20"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1539,7 +1539,7 @@ const I18N = {
     cmd_stack:'指令堆疊', handoff_log:'交接紀錄',
     deck_bal:'台面餘額 · 紙上', bots_holding:'Bot 持倉狀態', activity:'活動流',
     stat_win:'勝率', stat_dd:'最大回撤', stat_fills:'成交', stat_spot:'現貨',
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind19',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind20',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1550,6 +1550,8 @@ const I18N = {
     wake_retry:'重試連線',
     wake_reload:'重新整理',
     wake_elapsed:(s)=>`已等待 <b>${s}s</b> · 正在探測 /health`,
+    wake_recovering:'服務已醒 · 正在重新載入一次…',
+    wake_recovered_manual:'服務已醒 · 可按「重試連線」或「重新整理」',
     sleep_tip:'提示：Render 免費方案約 15 分鐘無人打開會自動休眠；分享連結給別人時，對方首次點開可能要等 30–50 秒喚醒。',
 
     cycle:'週期', conf:'信心',
@@ -1589,7 +1591,7 @@ const I18N = {
     cmd_stack:'COMMAND STACK', handoff_log:'HANDOFF LOG',
     deck_bal:'DECK BALANCE · PAPER', bots_holding:'BOTS ARE HOLDING', activity:'ACTIVITY',
     stat_win:'WIN', stat_dd:'MAX DD', stat_fills:'FILLS', stat_spot:'SPOT',
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind19',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind20',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
@@ -1600,6 +1602,8 @@ const I18N = {
     wake_retry:'RETRY',
     wake_reload:'RELOAD',
     wake_elapsed:(s)=>`Waited <b>${s}s</b> · probing /health`,
+    wake_recovering:'Service awake · reloading once…',
+    wake_recovered_manual:'Service awake · tap Retry or Reload',
     sleep_tip:'Tip: Render free tier sleeps after ~15 min with no visitors; shared links may need 30–50s to wake on first open.',
 
     cycle:'CYCLE', conf:'conf',
@@ -1986,13 +1990,29 @@ function render(s) {
   drawPnl(pf.equity_curve||[]);
 }
 
-/* ---- cold-start / reconnect wake UX (Render free sleep) ---- */
+/* ---- cold-start / mid-session sleep recovery (Render free) ---- */
+const WAKE_FAIL_THRESHOLD = 4; // ~6s at 1.5s tick — long enough to mean sleep, not a blip
+const WAKE_RELOAD_KEY = 'grokDeskWakeReloadedV1';
 const wake = {
   fails: 0,
+  okStreak: 0,
   shownAt: 0,
   timer: null,
+  healthTimer: null,
   probing: false,
+  longFail: false,
+  recovering: false,
+  sseFails: 0,
 };
+function wakeReloadUsed() {
+  try { return sessionStorage.getItem(WAKE_RELOAD_KEY) === '1'; } catch (_) { return false; }
+}
+function markWakeReloadUsed() {
+  try { sessionStorage.setItem(WAKE_RELOAD_KEY, '1'); } catch (_) {}
+}
+function clearWakeReloadFlag() {
+  try { sessionStorage.removeItem(WAKE_RELOAD_KEY); } catch (_) {}
+}
 function setWakeVisible(on) {
   const el = $('wakeBanner');
   if (!el) return;
@@ -2006,6 +2026,7 @@ function setWakeVisible(on) {
   }
   if (!on) {
     wake.shownAt = 0;
+    wake.recovering = false;
     clearInterval(wake.timer);
     wake.timer = null;
   }
@@ -2019,6 +2040,12 @@ function updateWakeCopy() {
   if (retry) retry.textContent = t('wake_retry');
   if (reload) reload.textContent = t('wake_reload');
   if (sub) {
+    if (wake.recovering) {
+      sub.innerHTML = wakeReloadUsed() && !wake._reloadArmed
+        ? t('wake_recovered_manual')
+        : t('wake_recovering');
+      return;
+    }
     const elapsed = wake.shownAt ? Math.max(0, Math.round((Date.now() - wake.shownAt) / 1000)) : 0;
     sub.innerHTML = t('wake_sub') + (elapsed ? `<br>${t('wake_elapsed', elapsed)}` : '');
   }
@@ -2039,6 +2066,60 @@ async function probeHealth() {
   } finally {
     wake.probing = false;
   }
+}
+function stopHealthPoll() {
+  clearInterval(wake.healthTimer);
+  wake.healthTimer = null;
+}
+function startHealthPoll() {
+  if (wake.healthTimer) return;
+  // Dedicated poll while mid-session sleep — don't rely only on failing /api/state ticks.
+  wake.healthTimer = setInterval(() => { maybeRecoverFromSleep(); }, 3000);
+  maybeRecoverFromSleep();
+}
+async function maybeRecoverFromSleep() {
+  if (wake.fails < WAKE_FAIL_THRESHOLD && wake.sseFails < WAKE_FAIL_THRESHOLD) return;
+  wake.longFail = true;
+  const ok = await probeHealth();
+  if (!ok) return;
+  // First /health ok after a long fail streak → one-shot auto-reload (no forever loop).
+  if (!wakeReloadUsed()) {
+    wake.recovering = true;
+    wake._reloadArmed = true;
+    updateWakeCopy();
+    markWakeReloadUsed();
+    stopHealthPoll();
+    setTimeout(() => { try { location.reload(); } catch (_) {} }, 350);
+    return;
+  }
+  // Already auto-reloaded once this tab session — stay on banner, manual Retry/Reload only.
+  wake.recovering = true;
+  wake._reloadArmed = false;
+  updateWakeCopy();
+  stopHealthPoll();
+}
+function noteWakeFailure(source) {
+  if (source === 'sse') wake.sseFails += 1;
+  else wake.fails += 1;
+  const fw = $('footWarn');
+  if (fw) fw.textContent = t('foot_err');
+  setWakeVisible(true);
+  updateWakeCopy();
+  if (wake.fails >= WAKE_FAIL_THRESHOLD || wake.sseFails >= WAKE_FAIL_THRESHOLD) {
+    startHealthPoll();
+  } else {
+    probeHealth();
+  }
+}
+function noteWakeSuccess() {
+  wake.fails = 0;
+  wake.sseFails = 0;
+  wake.longFail = false;
+  wake.okStreak += 1;
+  stopHealthPoll();
+  setWakeVisible(false);
+  // After a short healthy streak, allow ONE future mid-session auto-reload again.
+  if (wake.okStreak >= 3) clearWakeReloadFlag();
 }
 function maybeShowSleepTip() {
   try {
@@ -2062,34 +2143,31 @@ async function tick() {
     clearTimeout(to);
     if (!r.ok) throw new Error('state ' + r.status);
     const s = await r.json();
-    wake.fails = 0;
-    setWakeVisible(false);
+    noteWakeSuccess();
     const fw = $('footWarn');
     if (fw && (fw.textContent || '').includes('⚠')) fw.textContent = '';
     render(s);
   } catch (e) {
-    wake.fails += 1;
-    const fw = $('footWarn');
-    if (fw) fw.textContent = t('foot_err');
-    // Show wake overlay after first miss so cold-start / mid-session sleep is obvious on iPad.
-    if (wake.fails >= 1) {
-      setWakeVisible(true);
-      updateWakeCopy();
-      // Soft probe health in parallel — when ok, next tick() will recover.
-      probeHealth();
-    }
+    wake.okStreak = 0;
+    noteWakeFailure('state');
   }
 }
 (function bindWakeUi() {
   const retry = $('wakeRetryBtn');
   const reload = $('wakeReloadBtn');
   const dismiss = $('sleepTipDismiss');
-  if (retry) retry.addEventListener('click', () => { wake.fails = Math.max(wake.fails, 1); tick(); probeHealth(); });
+  if (retry) retry.addEventListener('click', () => {
+    wake.fails = Math.max(wake.fails, WAKE_FAIL_THRESHOLD);
+    wake.okStreak = 0;
+    tick();
+    maybeRecoverFromSleep();
+  });
   if (reload) reload.addEventListener('click', () => location.reload());
   if (dismiss) dismiss.addEventListener('click', dismissSleepTip);
-  // Show tip once per browser after first successful paint window.
   setTimeout(maybeShowSleepTip, 4500);
 })();
+window.__deskNoteWakeFailure = noteWakeFailure;
+window.__deskNoteWakeSuccess = noteWakeSuccess;
 
 $('viewToggle').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-view]');
@@ -2502,7 +2580,7 @@ function ensureFollowSSE() {
   try { if (followSSE) followSSE.close(); } catch(_){}
   setLivePill('warn');
   followSSE = new EventSource('/api/wallets/stream');
-  followSSE.addEventListener('hello', () => setLivePill('on'));
+  followSSE.addEventListener('hello', () => { setLivePill('on'); wake.sseFails = 0; });
   followSSE.addEventListener('activity', (ev) => {
     setLivePill('on');
     try {
@@ -2512,12 +2590,18 @@ function ensureFollowSSE() {
     } catch (_) {}
   });
   followSSE.onopen = () => setLivePill('on');
-  followSSE.onerror = () => {
+    followSSE.onerror = () => {
     setLivePill('off');
     try { followSSE.close(); } catch(_){}
     followSSE = null;
     clearTimeout(followSSERetry);
     followSSERetry = setTimeout(ensureFollowSSE, 4000);
+    // Mid-session sleep: only escalate when /api/state is already failing (avoid SSE flap banners).
+    wake.sseFails += 1;
+    if (wake.fails >= 1) {
+      if (wake.fails >= WAKE_FAIL_THRESHOLD || wake.sseFails >= WAKE_FAIL_THRESHOLD) startHealthPoll();
+      else if (typeof probeHealth === 'function') probeHealth();
+    }
   };
 }
 
