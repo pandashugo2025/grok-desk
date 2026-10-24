@@ -151,8 +151,28 @@ def engine_loop(interval: float, size_usdc: float, stop: threading.Event) -> Non
 
 
 class DeskHandler(SimpleHTTPRequestHandler):
+    # UI static extensions that must never be cached by Safari / intermediaries.
+    _UI_NO_STORE_SUFFIXES = (".html", ".js", ".css", ".svg", ".map", ".json", ".woff", ".woff2", ".ttf", ".ico")
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT / "ui"), **kwargs)
+
+    def end_headers(self) -> None:
+        """Force no-store on UI static responses so iPad Safari cannot keep an old document.
+
+        API JSON/SSE already set Cache-Control: no-store themselves — do not duplicate here.
+        """
+        try:
+            path = urlparse(getattr(self, "path", "") or "").path or ""
+        except Exception:
+            path = (getattr(self, "path", "") or "").split("?", 1)[0]
+        # When serving "/", do_GET remaps self.path to /index.html before super().do_GET.
+        is_ui = path in ("/", "/index.html", "") or path.endswith(self._UI_NO_STORE_SUFFIXES)
+        if is_ui:
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        super().end_headers()
 
     def log_message(self, fmt: str, *args: Any) -> None:
         if args and str(args[1]).startswith("4"):
