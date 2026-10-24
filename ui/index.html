@@ -823,7 +823,7 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
     .topbar {
-      /* mind26 stacked rows own the layout */
+      /* mind27 stacked rows own the layout */
       gap: 8px;
       padding: max(8px, env(safe-area-inset-top)) 10px 8px;
       align-items: stretch;
@@ -1096,7 +1096,50 @@
   .follow-toolbar .csv-age.missing b { color: var(--red); }
 
 
-  /* ===== TOPBAR DENSITY (mind26) ===== */
+
+  /* ===== FOLLOW SSE RECONNECT NOTE (mind27) ===== */
+  #followSseNote {
+    display: none;
+    margin: 0 0 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: rgba(10,14,22,0.9);
+  }
+  #followSseNote.on { display: block; }
+  #followSseNote.recon {
+    border-color: rgba(255,200,87,0.4);
+    color: #ffc857;
+    background: rgba(40,28,8,0.88);
+  }
+  #followSseNote.back {
+    border-color: rgba(57,255,135,0.35);
+    color: var(--neon);
+    background: rgba(8,28,16,0.88);
+  }
+  #followSseNote.off {
+    border-color: rgba(255,93,122,0.35);
+    color: var(--red);
+    background: rgba(36,10,16,0.88);
+  }
+  .live-pill.recon {
+    border-color: rgba(255,200,87,0.45);
+    color: #ffc857;
+  }
+  .live-pill.recon .ldot {
+    background: #ffc857;
+    animation: blink 0.9s infinite;
+  }
+  .live-pill.back {
+    border-color: rgba(57,255,135,0.55);
+    color: var(--neon);
+  }
+
+  /* ===== TOPBAR DENSITY (mind27) ===== */
   .topbar .tb-row,
   .topbar .tb-chips {
     display: contents; /* desktop: flat flex children */
@@ -1268,7 +1311,7 @@
     html.touch-device .topbar .tb-primary .view-toggle button { padding: 8px 12px; }
   }
 
-  /* ===== FOLLOW MOBILE DENSITY (mind26) ===== */
+  /* ===== FOLLOW MOBILE DENSITY (mind27) ===== */
   .follow-toolbar .ft-filters,
   .follow-toolbar .ft-search,
   .follow-toolbar .ft-actions,
@@ -1733,6 +1776,7 @@
       </div>
     </div>
     <div class="follow-status" id="followStatus" hidden></div>
+    <div id="followSseNote" role="status" aria-live="polite"></div>
     <div class="follow-body">
       <div class="follow-table-wrap">
         <table class="follow-table">
@@ -1792,7 +1836,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind26</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind27</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1804,8 +1848,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind26"></script>
-<script src="/mind.js?v=20261024mind26"></script>
+<script src="/floor.js?v=20261024mind27"></script>
+<script src="/mind.js?v=20261024mind27"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1829,6 +1873,11 @@ const I18N = {
     follow_strat:'策略', follow_all:'全部', follow_min_pnl:'最低損益', follow_search:'搜尋',
     follow_refresh:'刷新蜘蛛', follow_csv_age:'CSV 年齡', follow_refreshing:'刷新中…',
     follow_live:'準即時·SSE', follow_live_on:'準即時·已連線', follow_live_off:'準即時·未連線', follow_live_wait:'準即時·等待',
+    follow_live_recon:'準即時·重連中', follow_live_back:'準即時·已恢復',
+    follow_sse_recon:'近即時連線中斷 · 正在重連（紙上觀察）',
+    follow_sse_back:'近即時已恢復 · 繼續紙上觀察',
+    follow_sse_off_detail:'近即時離線 · 詳情仍可手動重新載入',
+
     follow_refreshed:'已觸發刷新', follow_act_err:'公開活動載入失敗', follow_act_empty:'此錢包暫無公開活動',
     follow_act_empty_hint:'Polymarket 公開 API 無資料 · 紙上觀察不會捏造成交',
     follow_act_err_hint:'可能離線、喚醒中，或上游暫時不可用 · 不會顯示假成交',
@@ -1874,7 +1923,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind26',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind27',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1904,6 +1953,11 @@ const I18N = {
     follow_strat:'STRATEGY', follow_all:'ALL', follow_min_pnl:'MIN PnL', follow_search:'SEARCH',
     follow_refresh:'REFRESH SPIDER', follow_csv_age:'CSV AGE', follow_refreshing:'Refreshing…',
     follow_live:'NEAR-LIVE·SSE', follow_live_on:'NEAR-LIVE·ON', follow_live_off:'NEAR-LIVE·OFF', follow_live_wait:'NEAR-LIVE·WAIT',
+    follow_live_recon:'NEAR-LIVE·RECONNECTING', follow_live_back:'NEAR-LIVE·BACK',
+    follow_sse_recon:'Near-live dropped · reconnecting (paper watch)',
+    follow_sse_back:'Near-live restored · paper watch continues',
+    follow_sse_off_detail:'Near-live offline · detail can still be reloaded manually',
+
     follow_refreshed:'Refresh started', follow_act_err:'Failed to load public activity', follow_act_empty:'No public activity for this wallet',
     follow_act_empty_hint:'Polymarket public API returned nothing · paper watch will not invent fills',
     follow_act_err_hint:'Offline, waking, or upstream blip · no fake fills shown',
@@ -1949,7 +2003,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind26',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind27',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
@@ -2114,7 +2168,11 @@ function setView(mode, opts) {
     loadFollowList();
     ensureFollowSSE();
     postWatch({ interval: followLiveInterval });
+    // refresh note for current SSE state when entering follow
+    if (typeof setLivePill === 'function') setLivePill(followSseUi.state === 'back' ? 'on' : (followSseUi.state || 'off'));
   } else {
+    const note = $('followSseNote');
+    if (note) { note.className = ''; note.textContent = ''; }
     requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
   if (!opts.skipSave) saveDeskSessionNow();
@@ -3138,15 +3196,111 @@ function addToWatchList(addr) {
   saveWatchList(cur);
 }
 
+const followSseUi = {
+  state: 'off',       // on | warn/recon | off | back
+  wasLive: false,
+  dropAt: 0,
+  noteTimer: null,
+  lastNoteAt: 0,
+  announceGapMs: 2500, // anti-spam
+};
+
+function setFollowSseNote(kind, msg, stickyMs) {
+  const el = $('followSseNote');
+  if (!el) return;
+  // Only surface mid-follow noise when user is on follow tab (esp. detail).
+  const show = (viewMode === 'follow') && !!msg;
+  if (!show) {
+    el.className = '';
+    el.textContent = '';
+    return;
+  }
+  const now = Date.now();
+  if (kind === 'recon' && now - followSseUi.lastNoteAt < followSseUi.announceGapMs && el.classList.contains('recon')) {
+    return; // don't re-shout reconnecting
+  }
+  followSseUi.lastNoteAt = now;
+  el.className = 'on ' + (kind || '');
+  el.textContent = msg;
+  clearTimeout(followSseUi.noteTimer);
+  if (stickyMs && stickyMs > 0) {
+    followSseUi.noteTimer = setTimeout(() => {
+      // Keep persistent "off" while still disconnected; clear transient back/recon.
+      if (followSseUi.state === 'on') {
+        el.className = '';
+        el.textContent = '';
+      } else if (followSseUi.state === 'off' && followSseUi.wasLive) {
+        el.className = 'on off';
+        el.textContent = t('follow_sse_off_detail');
+      } else if (followSseUi.state === 'warn' || followSseUi.state === 'recon') {
+        el.className = 'on recon';
+        el.textContent = t('follow_sse_recon');
+      } else {
+        el.className = '';
+        el.textContent = '';
+      }
+    }, stickyMs);
+  }
+}
+
 function setLivePill(state) {
   const el = $('followLivePill');
-  if (!el) return;
-  el.classList.remove('on','off','warn');
-  el.classList.add(state === 'on' ? 'on' : (state === 'warn' ? 'warn' : 'off'));
-  const lab = el.querySelector('span:last-child');
-  if (lab) {
-    lab.textContent = state === 'on' ? t('follow_live_on') : (state === 'warn' ? t('follow_live_wait') : t('follow_live_off'));
+  const prev = followSseUi.state;
+  // Normalize warn→recon once we had a live session (mid-detail drop).
+  let st = state;
+  if (st === 'warn' && followSseUi.wasLive) st = 'recon';
+  followSseUi.state = st;
+
+  if (el) {
+    el.classList.remove('on','off','warn','recon','back');
+    if (st === 'on' || st === 'back') el.classList.add('on');
+    else if (st === 'recon' || st === 'warn') el.classList.add(st === 'recon' ? 'recon' : 'warn');
+    else el.classList.add('off');
+    if (st === 'back') el.classList.add('back');
+    const lab = el.querySelector('span:last-child');
+    if (lab) {
+      lab.textContent =
+        st === 'on' ? t('follow_live_on') :
+        st === 'back' ? t('follow_live_back') :
+        st === 'recon' ? t('follow_live_recon') :
+        st === 'warn' ? t('follow_live_wait') :
+        t('follow_live_off');
+    }
   }
+
+  // Subtle banner: only after a real live→drop, or recovery — avoid first-connect spam.
+  if (st === 'recon' && followSseUi.wasLive) {
+    if (!followSseUi.dropAt) followSseUi.dropAt = Date.now();
+    setFollowSseNote('recon', t('follow_sse_recon'), 0);
+  } else if ((st === 'on' || st === 'back') && followSseUi.wasLive && (prev === 'recon' || prev === 'off' || prev === 'warn')) {
+    followSseUi.dropAt = 0;
+    setFollowSseNote('back', t('follow_sse_back'), 2800);
+    // brief pill flash as "back" then settle to on
+    if (st === 'on') {
+      followSseUi.state = 'back';
+      if (el) {
+        el.classList.add('back');
+        const lab = el.querySelector('span:last-child');
+        if (lab) lab.textContent = t('follow_live_back');
+      }
+      setTimeout(() => {
+        if (followSseUi.state === 'back') {
+          followSseUi.state = 'on';
+          if (el) {
+            el.classList.remove('back');
+            const lab = el.querySelector('span:last-child');
+            if (lab) lab.textContent = t('follow_live_on');
+          }
+        }
+      }, 1600);
+    }
+  } else if (st === 'off' && followSseUi.wasLive && viewMode === 'follow') {
+    setFollowSseNote('off', t('follow_sse_off_detail'), 0);
+  } else if (st === 'on' && !followSseUi.wasLive) {
+    // first successful connect — mark wasLive, no banner
+    followSseUi.wasLive = true;
+  }
+  if (st === 'on' || st === 'back') followSseUi.wasLive = true;
 }
 
 async function postWatch(extra) {
@@ -3187,12 +3341,15 @@ function ensureFollowSSE() {
     } catch (_) {}
   });
   followSSE.onopen = () => setLivePill('on');
-    followSSE.onerror = () => {
-    setLivePill('off');
+  followSSE.onerror = () => {
+    // Prefer reconciling UI over hard OFF when we had a live session (mid-detail).
+    setLivePill(followSseUi.wasLive ? 'warn' : 'off');
     try { followSSE.close(); } catch(_){}
     followSSE = null;
     clearTimeout(followSSERetry);
-    followSSERetry = setTimeout(ensureFollowSSE, 4000);
+    const drops = Math.max(0, wake.sseFails || 0);
+    const delay = Math.min(12000, 3000 + drops * 1500); // gentle backoff, not spammy
+    followSSERetry = setTimeout(ensureFollowSSE, delay);
     // Mid-session sleep: only escalate when /api/state is already failing (avoid SSE flap banners).
     wake.sseFails += 1;
     if (wake.fails >= 1) {
