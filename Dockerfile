@@ -11,11 +11,10 @@ COPY signals/ signals/
 COPY spider/ spider/
 COPY ui/ ui/
 COPY vendor/ vendor/
-COPY state/ state/
 COPY run.py .
 COPY README.md .
 
-# Seed dirs the app writes into at runtime
+# state/ is gitignored (runtime snapshots); create empty dirs instead of COPY.
 RUN mkdir -p output state/wallet_cache
 
 ENV PYTHONUNBUFFERED=1
