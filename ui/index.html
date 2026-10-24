@@ -1027,7 +1027,62 @@
     .share-btn { min-height: 40px; padding: 8px 12px; font-size: 9px; }
   }
 
-  /* ===== FOLLOW MOBILE DENSITY (mind22) ===== */
+
+  .follow-status {
+    display: none;
+    margin: 0 0 6px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    line-height: 1.45;
+    border: 1px solid var(--border);
+    background: rgba(10,14,22,0.9);
+    color: var(--muted);
+  }
+  .follow-status.on { display: block; }
+  .follow-status.stale {
+    border-color: rgba(255,200,87,0.45);
+    color: #ffc857;
+    background: rgba(40,28,8,0.85);
+  }
+  .follow-status.error, .follow-status.offline {
+    border-color: rgba(255,93,122,0.45);
+    color: var(--red);
+    background: rgba(40,10,16,0.85);
+  }
+  .follow-status.empty-csv {
+    border-color: rgba(77,224,255,0.35);
+    color: var(--cyan);
+    background: rgba(8,18,28,0.9);
+  }
+  .follow-status .fs-actions { margin-top: 6px; display:flex; gap:8px; flex-wrap:wrap; }
+  .follow-status button {
+    font: inherit; font-size: 9px; letter-spacing: 0.12em;
+    padding: 6px 10px; min-height: 34px; border-radius: 4px; cursor: pointer;
+    border: 1px solid rgba(77,224,255,0.4); background: rgba(77,224,255,0.08); color: var(--cyan);
+    touch-action: manipulation;
+  }
+  .follow-empty.rich {
+    padding: 28px 16px; text-align: center;
+  }
+  .follow-empty.rich .fe-title {
+    display:block; color: var(--text); font-size: 12px; letter-spacing: 0.1em; margin-bottom: 8px;
+  }
+  .follow-empty.rich .fe-sub {
+    display:block; color: var(--muted); font-size: 10px; line-height: 1.5; letter-spacing: 0.04em;
+    max-width: 360px; margin: 0 auto 12px;
+  }
+  .follow-empty.rich button {
+    font: inherit; font-size: 9px; letter-spacing: 0.12em;
+    padding: 8px 12px; min-height: 40px; border-radius: 4px; cursor: pointer;
+    border: 1px solid rgba(77,224,255,0.4); background: rgba(77,224,255,0.08); color: var(--cyan);
+    touch-action: manipulation;
+  }
+  .follow-toolbar .csv-age.stale b { color: #ffc857; }
+  .follow-toolbar .csv-age.missing b { color: var(--red); }
+
+  /* ===== FOLLOW MOBILE DENSITY (mind23) ===== */
   .follow-toolbar .ft-filters,
   .follow-toolbar .ft-search,
   .follow-toolbar .ft-actions,
@@ -1483,6 +1538,7 @@
         <span class="hint" id="followHint"><span data-i18n="follow_hint">前百錢包 · 僅觀察</span> · <b id="followCount">0</b></span>
       </div>
     </div>
+    <div class="follow-status" id="followStatus" hidden></div>
     <div class="follow-body">
       <div class="follow-table-wrap">
         <table class="follow-table">
@@ -1542,7 +1598,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind22</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind23</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1554,8 +1610,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind22"></script>
-<script src="/mind.js?v=20261024mind22"></script>
+<script src="/floor.js?v=20261024mind23"></script>
+<script src="/mind.js?v=20261024mind23"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1584,9 +1640,19 @@ const I18N = {
     follow_dir:'方向', follow_amt:'金額', follow_time:'時間', follow_mkt:'市場',
     follow_sort:'排序', follow_sort_rank:'名次', follow_sort_pnl_desc:'損益高→低',
     follow_sort_pnl_asc:'損益低→高', follow_sort_vol_desc:'成交量高→低',
-    follow_hint:'前百錢包 · 僅觀察', follow_loading:'載入中…',
-    follow_pick:'點選左側錢包查看公開活動', follow_empty:'沒有符合條件的錢包',
-    follow_err:'無法載入錢包列表', follow_act:'近期活動', follow_trades:'近期成交',
+    follow_hint:'前百錢包 · 僅觀察', follow_loading:'載入公開錢包清單中…',
+    follow_pick:'點選左側錢包查看公開活動', follow_empty:'沒有符合條件的錢包 — 試試放寬篩選',
+    follow_empty_csv:'尚無蜘蛛 CSV · 紙上觀察清單為空（非假資料）',
+    follow_empty_csv_hint:'點「刷新蜘蛛」抓取公開前百；免費方案喚醒後也可能要等一會',
+    follow_err:'無法載入錢包列表 — 可能離線或交易台正在喚醒',
+    follow_err_http:'伺服器回傳錯誤',
+    follow_retry:'重試載入',
+    follow_stale:'CSV 資料偏舊',
+    follow_stale_hint:(h, th)=>`已 ${h} · 超過 ${th}h 門檻 · 仍是紙上觀察，可刷新蜘蛛`,
+    follow_offline:'跟倉面板離線',
+    follow_offline_hint:'連不上 /api/wallets · 不會顯示假錢包',
+    follow_refreshing_list:'蜘蛛刷新中 · 清單稍後更新',
+    follow_act:'近期活動', follow_trades:'近期成交',
     follow_mkts:'常出現市場', follow_notes:'本地備註', follow_notes_hint:'僅存此瀏覽器 · 不上傳 · 不下單',
     follow_profile:'公開檔案', follow_paper:'紙上觀察 · 無金鑰',
     col_rank:'#', col_wallet:'錢包', col_pnl:'損益', col_vol:'成交量', col_strat:'策略標籤',
@@ -1607,7 +1673,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind22',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind23',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1642,9 +1708,19 @@ const I18N = {
     follow_dir:'SIDE', follow_amt:'SIZE', follow_time:'TIME', follow_mkt:'MARKET',
     follow_sort:'SORT', follow_sort_rank:'RANK', follow_sort_pnl_desc:'PnL HIGH→LOW',
     follow_sort_pnl_asc:'PnL LOW→HIGH', follow_sort_vol_desc:'VOL HIGH→LOW',
-    follow_hint:'TOP-100 · OBSERVE ONLY', follow_loading:'Loading…',
-    follow_pick:'Select a wallet to view public activity', follow_empty:'No wallets match filters',
-    follow_err:'Failed to load wallets', follow_act:'RECENT ACTIVITY', follow_trades:'RECENT TRADES',
+    follow_hint:'TOP-100 · OBSERVE ONLY', follow_loading:'Loading public wallet list…',
+    follow_pick:'Select a wallet to view public activity', follow_empty:'No wallets match filters — try loosening filters',
+    follow_empty_csv:'No spider CSV yet · paper watch list is empty (not fake data)',
+    follow_empty_csv_hint:'Tap Refresh spider for public top-100; free-tier wake may take a moment',
+    follow_err:'Could not load wallets — offline or desk may be waking',
+    follow_err_http:'Server returned an error',
+    follow_retry:'RETRY LOAD',
+    follow_stale:'CSV looks stale',
+    follow_stale_hint:(h, th)=>`${h} old · over ${th}h threshold · still paper observe; refresh spider`,
+    follow_offline:'Follow panel offline',
+    follow_offline_hint:'/api/wallets unreachable · no fake wallets shown',
+    follow_refreshing_list:'Spider refresh running · list will update shortly',
+    follow_act:'RECENT ACTIVITY', follow_trades:'RECENT TRADES',
     follow_mkts:'TOP MARKETS', follow_notes:'LOCAL NOTES', follow_notes_hint:'This browser only · not uploaded · no orders',
     follow_profile:'PUBLIC PROFILE', follow_paper:'PAPER WATCH · NO KEYS',
     col_rank:'#', col_wallet:'WALLET', col_pnl:'PnL', col_vol:'VOLUME', col_strat:'STRATEGY',
@@ -1665,7 +1741,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind22',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind23',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
@@ -2361,7 +2437,8 @@ async function loadFollowList() {
   if (followLoading) return;
   followLoading = true;
   const tb = $('followTbody');
-  if (tb) tb.innerHTML = `<tr><td colspan="5" class="follow-empty">${t('follow_loading')}</td></tr>`;
+  if (tb) tb.innerHTML = `<tr><td colspan="5" class="follow-empty rich"><span class="fe-title">${t('follow_loading')}</span></td></tr>`;
+  setFollowStatus('', '');
   const strat = ($('followStrat') && $('followStrat').value) || 'all';
   const minP = ($('followMinPnl') && $('followMinPnl').value) || '';
   const q = ($('followQ') && $('followQ').value) || '';
@@ -2371,11 +2448,30 @@ async function loadFollowList() {
   if (q) params.set('q', q);
   params.set('limit', '100');
   try {
-    const r = await fetch('/api/wallets?' + params.toString() + '&_=' + Date.now());
-    const data = await r.json();
-    followWallets = data.wallets || [];
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 20000);
+    const r = await fetch('/api/wallets?' + params.toString() + '&_=' + Date.now(), { signal: ctrl.signal, cache: 'no-store' });
+    clearTimeout(to);
+    let data = null;
+    try { data = await r.json(); } catch (_) { data = null; }
+    if (!r.ok) {
+      followWallets = [];
+      followListMeta = { total: 0, missing: false, stale: false, offline: true, threshold: 12 };
+      setFollowCsvAge(null, false, { missing: true });
+      setFollowStatus('error', `${t('follow_err_http')} (${r.status})`, true);
+      if (tb) tb.innerHTML = followEmptyRich(t('follow_err'), t('follow_offline_hint'), true);
+      return;
+    }
+    followWallets = (data && data.wallets) || [];
+    const total = Number((data && data.total_in_csv) || 0);
+    const missing = !!(data && (data.csv_missing || (!data.csv_exists && total === 0 && data.csv_age_hours == null)));
+    const threshold = Number((data && data.stale_threshold_h) || 12);
+    const age = (data && data.csv_age_hours != null) ? Number(data.csv_age_hours) : null;
+    const stale = !!(data && data.csv_stale) || (age != null && age > threshold) || missing;
+    const refreshing = !!(data && data.refresh && data.refresh.refreshing);
+    followListMeta = { total, missing, stale, offline: false, threshold, age, refreshing };
     const sel = $('followStrat');
-    if (sel && data.strategies) {
+    if (sel && data && data.strategies) {
       const cur = sel.value || 'all';
       const opts = ['<option value="all">' + t('follow_all') + '</option>']
         .concat(data.strategies.map(s => `<option value="${s}">${stratLabel(s)}</option>`));
@@ -2383,21 +2479,87 @@ async function loadFollowList() {
       sel.value = cur;
       if (![...sel.options].some(o => o.value === cur)) sel.value = 'all';
     }
-    const age = data.csv_age_hours != null ? data.csv_age_hours + 'h' : '—';
-    followCsvMeta.age_hours = data.csv_age_hours;
-    followCsvMeta.refreshing = !!(data.refresh && data.refresh.refreshing);
-    setFollowCsvAge(followCsvMeta.age_hours, followCsvMeta.refreshing);
-    $('followCount').textContent = `${followWallets.length}/${data.total_in_csv||0}`;
+    followCsvMeta.age_hours = age;
+    followCsvMeta.refreshing = refreshing;
+    setFollowCsvAge(age, refreshing, { missing, stale });
+    const cnt = $('followCount');
+    if (cnt) cnt.textContent = `${followWallets.length}/${total}`;
+    updateFollowStatusBanner();
     renderFollowTable();
     if (followSelected) {
       const still = followWallets.find(w => w.address === followSelected);
       if (still) selectFollowWallet(still.address, true);
     }
   } catch (e) {
-    if (tb) tb.innerHTML = `<tr><td colspan="5" class="follow-empty">${t('follow_err')}</td></tr>`;
+    followWallets = [];
+    followListMeta = { total: 0, missing: false, stale: false, offline: true, threshold: 12 };
+    setFollowCsvAge(null, false, { missing: true });
+    setFollowStatus('offline', `${t('follow_offline')} — ${t('follow_offline_hint')}`, true);
+    if (tb) tb.innerHTML = followEmptyRich(t('follow_err'), t('follow_offline_hint'), true);
   } finally {
     followLoading = false;
   }
+}
+
+function followEmptyRich(title, sub, withRetry) {
+  const retry = withRetry
+    ? `<div><button type="button" id="followRetryBtn">${t('follow_retry')}</button></div>`
+    : `<div><button type="button" id="followRetryBtn">${t('follow_refresh')}</button></div>`;
+  // bind after paint
+  setTimeout(() => {
+    const b = $('followRetryBtn');
+    if (!b) return;
+    b.onclick = () => {
+      if (withRetry) loadFollowList();
+      else refreshSpider();
+    };
+  }, 0);
+  return `<tr><td colspan="5" class="follow-empty rich"><span class="fe-title">${title}</span><span class="fe-sub">${sub}</span>${retry}</td></tr>`;
+}
+
+function setFollowStatus(kind, msg, withRetry) {
+  const el = $('followStatus');
+  if (!el) return;
+  el.className = 'follow-status' + (kind ? ' on ' + kind : '');
+  if (!kind || !msg) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+  el.hidden = false;
+  const actions = withRetry
+    ? `<div class="fs-actions"><button type="button" id="followStatusRetry">${t('follow_retry')}</button><button type="button" id="followStatusRefresh">${t('follow_refresh')}</button></div>`
+    : (kind === 'stale' || kind === 'empty-csv'
+      ? `<div class="fs-actions"><button type="button" id="followStatusRefresh">${t('follow_refresh')}</button></div>`
+      : '');
+  el.innerHTML = `<div>${msg}</div>${actions}`;
+  setTimeout(() => {
+    const r = $('followStatusRetry');
+    const f = $('followStatusRefresh');
+    if (r) r.onclick = () => loadFollowList();
+    if (f) f.onclick = () => refreshSpider();
+  }, 0);
+}
+
+function updateFollowStatusBanner() {
+  const m = followListMeta || {};
+  if (m.offline) return; // already set
+  if (m.missing || (m.total === 0 && (m.age == null))) {
+    setFollowStatus('empty-csv', `${t('follow_empty_csv')} — ${t('follow_empty_csv_hint')}`, false);
+    return;
+  }
+  if (m.refreshing) {
+    setFollowStatus('stale', t('follow_refreshing_list'), false);
+    return;
+  }
+  if (m.stale) {
+    const ageTxt = (m.age != null)
+      ? (m.age < 1 ? Math.round(m.age * 60) + 'm' : m.age.toFixed(1) + 'h')
+      : '—';
+    setFollowStatus('stale', `${t('follow_stale')} — ${t('follow_stale_hint', ageTxt, m.threshold || 12)}`, false);
+    return;
+  }
+  setFollowStatus('', '');
 }
 
 function sortedFollowWallets() {
@@ -2413,7 +2575,14 @@ function renderFollowTable() {
   const tb = $('followTbody');
   if (!tb) return;
   if (!followWallets.length) {
-    tb.innerHTML = `<tr><td colspan="5" class="follow-empty">${t('follow_empty')}</td></tr>`;
+    const m = followListMeta || {};
+    if (m.offline) {
+      tb.innerHTML = followEmptyRich(t('follow_err'), t('follow_offline_hint'), true);
+    } else if (m.missing || m.total === 0) {
+      tb.innerHTML = followEmptyRich(t('follow_empty_csv'), t('follow_empty_csv_hint'), false);
+    } else {
+      tb.innerHTML = followEmptyRich(t('follow_empty'), t('follow_hint'), false);
+    }
     return;
   }
   tb.innerHTML = sortedFollowWallets().map(w => {
@@ -2435,13 +2604,19 @@ function renderFollowTable() {
 
 let followAbort = null;
 let followCsvMeta = { age_hours: null, refreshing: false };
+let followListMeta = { total: 0, missing: false, stale: false, offline: false, threshold: 12 };
 
-function setFollowCsvAge(age, refreshing) {
+function setFollowCsvAge(age, refreshing, flags) {
   const el = $('followCsvAge');
   if (!el) return;
   const b = el.querySelector('b');
   let txt = '—';
-  if (age != null && age !== '') {
+  const missing = !!(flags && flags.missing);
+  const stale = !!(flags && flags.stale);
+  el.classList.toggle('missing', missing);
+  el.classList.toggle('stale', !missing && stale);
+  if (missing) txt = '∅';
+  else if (age != null && age !== '') {
     const a = Number(age);
     if (a < 1) txt = Math.round(a * 60) + 'm';
     else txt = a.toFixed(2) + 'h';

@@ -187,12 +187,19 @@ def list_wallets(
 
     strategies = sorted({(w.get("suspected_strategy") or "unknown") for w in wallets})
     age = _csv_age_hours()
+    csv_exists = SPIDER_CSV.exists()
+    csv_missing = not csv_exists
+    csv_stale = (age is None) or (age > STALE_HOURS)
     return {
         "paper_only": True,
         "disclaimer": "PAPER / OBSERVE ONLY — no live orders, no keys",
         "source_csv": str(SPIDER_CSV),
-        "csv_mtime": SPIDER_CSV.stat().st_mtime if SPIDER_CSV.exists() else None,
+        "csv_mtime": SPIDER_CSV.stat().st_mtime if csv_exists else None,
         "csv_age_hours": None if age is None else round(age, 2),
+        "csv_exists": csv_exists,
+        "csv_missing": csv_missing,
+        "csv_stale": bool(csv_stale),
+        "stale_threshold_h": STALE_HOURS,
         "count": len(out),
         "total_in_csv": len(wallets),
         "strategies": strategies,
