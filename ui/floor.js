@@ -35,6 +35,17 @@
     return fallback;
   }
   function isZh() { return !(global.DeskI18n && global.DeskI18n.lang === 'en'); }
+  /* mind32: dense = touch / short landscape / narrow — declutter floor */
+  function isDense() {
+    try {
+      if (typeof matchMedia === 'function') {
+        if (matchMedia('(pointer: coarse)').matches) return true;
+        if (matchMedia('(orientation: landscape) and (max-height: 900px)').matches) return true;
+      }
+    } catch (_) {}
+    return !!(canvas && canvas.width < 700 * dpr);
+  }
+  function showDecorLabels() { return !isDense(); }
 
   function iso(x, y, z) {
     return { x: (x - y) * TW, y: (x + y) * TH - (z || 0) };
@@ -161,12 +172,14 @@
     ctx.fillStyle = 'rgba(5,8,12,0.92)'; ctx.fill();
     ctx.strokeStyle = 'rgba(57,255,135,0.2)'; ctx.stroke();
 
-    // left wall brand — mind31: quieter + higher so it doesn't eat ghost labels
+    // left wall brand — mind32: hide on dense; quiet on desktop
+    if (isDense()) { /* skip THE_GROK_FLOOR brand on touch/landscape */ }
+    else {
     const brand = worldToScreen(0.08, 0.85, 2.15);
     ctx.save();
     ctx.translate(brand.x, brand.y);
     ctx.rotate(-0.55);
-    ctx.globalAlpha = 0.38;
+    ctx.globalAlpha = 0.28;
     ctx.fillStyle = 'rgba(57,255,135,0.95)';
     ctx.font = `800 ${8.5 * dpr}px monospace`;
     ctx.textAlign = 'left';
@@ -176,32 +189,16 @@
     ctx.font = `600 ${5.5 * dpr}px monospace`;
     ctx.fillText(isZh() ? '紙上 · 六桌線上' : 'PAPER · 6 DESKS LIVE', 0, 10 * dpr);
     ctx.restore();
+    } /* end !isDense brand */
   }
 
   function drawWallScreens(t) {
-    // scrolling ticker strip above main monitor
-    const tickY = 2.25;
-    const t0p = worldToScreen(1.8, 0.05, tickY);
-    const t1p = worldToScreen(6.4, 0.05, tickY);
-    ctx.fillStyle = 'rgba(4,8,12,0.92)';
-    ctx.fillRect(t0p.x, t0p.y - 8 * dpr, t1p.x - t0p.x, 14 * dpr);
-    ctx.strokeStyle = 'rgba(57,255,135,0.35)'; ctx.lineWidth = 1 * dpr;
-    ctx.strokeRect(t0p.x, t0p.y - 8 * dpr, t1p.x - t0p.x, 14 * dpr);
+    /* mind32: mid-wall ticker removed — it projected onto ghost cluster in landscape.
+       Status ticker is drawStageHud() at top of canvas (screen space). */
     const slug = ((state.market || {}).slug || 'BTC-UPDOWN').toString().slice(0, 18).toUpperCase();
     const pnl = Number((state.portfolio || {}).pnl_total || 0);
     const eq = Number((state.portfolio || {}).equity || 10000);
     const pct = eq ? (pnl / Math.max(1, eq - pnl)) * 100 : 0;
-    const tick = `${slug} DESK · ${(pct >= 0 ? '+' : '')}${pct.toFixed(2)}% · ${i18n('floor_live_n', '6 桌線上')} · COINBASE LIVE · PAPER ONLY · `;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(t0p.x + 2 * dpr, t0p.y - 7 * dpr, t1p.x - t0p.x - 4 * dpr, 12 * dpr);
-    ctx.clip();
-    ctx.fillStyle = '#39ff87';
-    ctx.font = `700 ${8 * dpr}px monospace`;
-    ctx.textAlign = 'left';
-    const scroll = ((t * 42) % 280);
-    ctx.fillText(tick + tick, t0p.x + 6 * dpr - scroll, t0p.y + 2 * dpr);
-    ctx.restore();
 
     // main wall monitor bezel
     const mx = 2.35, my = 0.04, mw = 3.5, mh = 1.72;
@@ -261,7 +258,8 @@
     ctx.fillText((pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2) + ' PAPER', tl.x + 8 * dpr, tl.y + 42 * dpr);
 
     // side wall screens (left + right of main)
-    [[0.25, 0.05, 1.7, '#39ff87'], [6.15, 0.05, 1.55, '#ff4dcf']].forEach((sc, i) => {
+    /* mind32: right screen inset so FLOW isn't clipped by stage edge */
+    [[0.25, 0.05, 1.7, '#39ff87'], [5.95, 0.05, 1.35, '#ff4dcf']].forEach((sc, i) => {
       const [sx, sy, sw, col] = sc;
       const p0 = worldToScreen(sx, sy, 0.85);
       const p1 = worldToScreen(sx + sw, sy, 0.85);
@@ -281,10 +279,24 @@
         ctx.fillRect(x - 2.5 * dpr, p0.y - hgt - hh * 0.12, 5 * dpr, hgt);
       }
       ctx.globalAlpha = 1;
-      ctx.fillStyle = col;
-      ctx.font = `700 ${7 * dpr}px monospace`;
+      /* mind32: keep FLOW/SCAN inside bezel; skip if would clip off canvas edge */
+      const tag = i ? 'FLOW' : 'SCAN';
+      ctx.font = `700 ${6.5 * dpr}px monospace`;
       ctx.textAlign = 'left';
-      ctx.fillText(i ? 'FLOW' : 'SCAN', p3.x + 5 * dpr, p3.y + 11 * dpr);
+      const tagX = p3.x + 6 * dpr;
+      const tagY = p3.y + 10 * dpr;
+      const tagW = ctx.measureText(tag).width;
+      const edgePad = 10 * dpr;
+      if (tagX > edgePad && tagX + tagW < canvas.width - edgePad && tagY > edgePad) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(Math.min(p3.x, p2.x) + 2 * dpr, Math.min(p3.y, p2.y) + 2 * dpr,
+          Math.abs(p2.x - p3.x) - 4 * dpr, Math.abs(p0.y - p3.y) - 4 * dpr);
+        ctx.clip();
+        ctx.fillStyle = col;
+        ctx.fillText(tag, tagX, tagY);
+        ctx.restore();
+      }
     });
 
     // right rules board
@@ -436,7 +448,7 @@
     ctx.lineTo(mid.x, mid.y + 16 * dpr + flick);
     ctx.lineTo(mid.x + 5 * dpr, mid.y + 2 * dpr);
     ctx.fill();
-    label(x + 0.27, y + 0.27, 1.95 + bob, isZh() ? '頂尖跑者' : 'TOP RUNNER', '#ff8a3d', { size: 6.5 });
+    if (showDecorLabels()) label(x + 0.27, y + 0.27, 1.95 + bob, isZh() ? '頂尖跑者' : 'TOP RUNNER', '#ff8a3d', { size: 6.5 });
   }
 
   function drawRadar(x, y, t) {
@@ -464,7 +476,7 @@
     for (const r of [10, 16]) {
       ctx.beginPath(); ctx.ellipse(pole.x, pole.y + 14 * dpr, r * dpr, r * 0.35 * dpr, 0, 0, 7); ctx.stroke();
     }
-    label(x + 0.29, y + 0.29, 1.4, isZh() ? '巨鯨雷達' : 'WHALE RADAR', '#4de0ff', { size: 6.5 });
+    if (showDecorLabels()) label(x + 0.29, y + 0.29, 1.4, isZh() ? '巨鯨雷達' : 'WHALE RADAR', '#4de0ff', { size: 6.5 });
   }
 
   function drawTrash(x, y) {
@@ -473,7 +485,7 @@
     const rim = worldToScreen(x + 0.21, y + 0.21, 0.58);
     ctx.strokeStyle = '#ffc857'; ctx.lineWidth = 1.5 * dpr;
     ctx.beginPath(); ctx.ellipse(rim.x, rim.y, 9 * dpr, 4 * dpr, 0, 0, 7); ctx.stroke();
-    label(x + 0.21, y + 0.21, 0.9, isZh() ? '紙手' : 'PAPER HANDS', '#ffc857', { size: 6 });
+    if (showDecorLabels()) label(x + 0.21, y + 0.21, 0.9, isZh() ? '紙手' : 'PAPER HANDS', '#ffc857', { size: 6 });
   }
 
   function drawServer(x, y, t) {
@@ -490,7 +502,7 @@
         ctx.fillRect(pL.x + 4 * dpr + i * 7 * dpr, pL.y - 2 * dpr, 5 * dpr, 3 * dpr);
       }
     }
-    label(x + 0.36, y + 0.3, 1.6, 'pump.fun', '#39ff87', { size: 6.5 });
+    if (showDecorLabels()) label(x + 0.36, y + 0.3, 1.6, 'pump.fun', '#39ff87', { size: 6.5 });
   }
 
   function drawHeadOfFloor(x, y, t) {
@@ -517,8 +529,10 @@
     const now = new Date();
     const hh = String(now.getUTCHours()).padStart(2, '0');
     const mm = String(now.getUTCMinutes()).padStart(2, '0');
-    label(x + 0.6, y + 0.4, 1.65, isZh() ? '場地板手' : 'HEAD OF FLOOR', '#9ab0c4', { size: 6.2 });
-    chip(p.x, p.y + 18 * dpr, hh + ':' + mm + ' UTC', '#39ff87', { size: 6.5 });
+    if (showDecorLabels()) {
+      label(x + 0.6, y + 0.4, 1.65, isZh() ? '場地板手' : 'HEAD OF FLOOR', '#9ab0c4', { size: 6.2 });
+      chip(p.x, p.y + 18 * dpr, hh + ':' + mm + ' UTC', '#39ff87', { size: 6.5 });
+    }
   }
 
   function drawGhost(agent, t) {
@@ -609,55 +623,68 @@
   }
 
   function drawGhostLabels() {
-    /* mind31: place smaller bubbles with collision avoid / priority hide */
-    const slots = labelSlots.slice().sort((a, b) => b.prio - a.prio || a.id.localeCompare(b.id));
+    /* mind32: denser avoid — prefer above ghosts; drop standby on dense layouts */
+    const dense = isDense();
+    const slots = labelSlots.slice()
+      .filter(s => !dense || s.prio >= 2)
+      .sort((a, b) => b.prio - a.prio || a.id.localeCompare(b.id));
     const placed = [];
     const phone = canvas.width < 520 * dpr;
-    const fs = (phone ? 5.4 : 5.8) * dpr;
+    const fs = (dense ? 5.2 : (phone ? 5.4 : 5.8)) * dpr;
     const padX = 5 * dpr, padY = 2.6 * dpr;
     const th = fs + padY * 2;
-    const offsets = [
-      [0, 0], [0, -16 * dpr], [0, 14 * dpr],
-      [-22 * dpr, -10 * dpr], [22 * dpr, -10 * dpr],
-      [0, -28 * dpr], [-30 * dpr, 6 * dpr], [30 * dpr, 6 * dpr],
-    ];
+    const hudReserve = 28 * dpr; /* keep clear of top stage HUD */
+    const offsets = dense
+      ? [
+          [0, -8 * dpr], [0, -22 * dpr], [0, -36 * dpr],
+          [-26 * dpr, -18 * dpr], [26 * dpr, -18 * dpr],
+          [-34 * dpr, -6 * dpr], [34 * dpr, -6 * dpr],
+        ]
+      : [
+          [0, 0], [0, -16 * dpr], [0, -28 * dpr],
+          [-22 * dpr, -10 * dpr], [22 * dpr, -10 * dpr],
+          [0, 14 * dpr], [-30 * dpr, 6 * dpr], [30 * dpr, 6 * dpr],
+        ];
 
     for (const slot of slots) {
-      let text = slot.primary;
+      let text = dense ? (slot.prio >= 3 ? slot.primary.slice(0, 16) : slot.id) : slot.primary;
       ctx.font = `700 ${fs}px monospace`;
       ctx.textAlign = 'center';
-      let tw = Math.min(ctx.measureText(text).width + padX * 2, (phone ? 110 : 128) * dpr);
+      let tw = Math.min(ctx.measureText(text).width + padX * 2, (phone || dense ? 100 : 128) * dpr);
       let chosen = null;
       const tryPlace = (t) => {
-        tw = Math.min(ctx.measureText(t).width + padX * 2, (phone ? 110 : 128) * dpr);
+        tw = Math.min(ctx.measureText(t).width + padX * 2, (phone || dense ? 100 : 128) * dpr);
         for (const [dx, dy] of offsets) {
           const x = slot.ax + dx - tw / 2;
           const y = slot.ay + dy - th / 2;
+          if (y < hudReserve) continue;
+          if (x < 4 * dpr || x + tw > canvas.width - 4 * dpr) continue;
           const rect = { x, y, w: tw, h: th };
           let hit = false;
           for (const p of placed) {
             if (rectsOverlap(rect, p, 3 * dpr)) { hit = true; break; }
           }
-          /* also keep off ghost bodies a bit when offset sideways */
           if (!hit) return { rect, text: t, cx: slot.ax + dx, cy: slot.ay + dy };
         }
         return null;
       };
       chosen = tryPlace(text);
-      if (!chosen && slot.secondary !== text) {
+      if (!chosen && !dense && slot.secondary !== text) {
         text = slot.secondary;
         chosen = tryPlace(text);
       }
       if (!chosen) {
         /* low-priority: drop; high: force short above ghost */
+        if (slot.prio < 3 && dense) continue;
         if (slot.prio < 2) continue;
         text = slot.id;
         tw = Math.min(ctx.measureText(text).width + padX * 2, 72 * dpr);
+        const fy = Math.max(hudReserve + th / 2, slot.ay - 12 * dpr);
         chosen = {
-          rect: { x: slot.ax - tw / 2, y: slot.ay - th / 2 - 10 * dpr, w: tw, h: th },
+          rect: { x: slot.ax - tw / 2, y: fy - th / 2, w: tw, h: th },
           text,
           cx: slot.ax,
-          cy: slot.ay - 10 * dpr,
+          cy: fy,
         };
       }
       placed.push(chosen.rect);
@@ -679,10 +706,37 @@
     }
   }
 
+  function drawStageHud(t) {
+    /* mind32: screen-space status strip at TOP of stage — never over mid-floor ghosts */
+    const w = canvas.width, h = canvas.height;
+    const barH = 18 * dpr;
+    const y0 = 6 * dpr;
+    const slug = ((state.market || {}).slug || 'BTC-UPDOWN').toString().slice(0, 18).toUpperCase();
+    const pnl = Number((state.portfolio || {}).pnl_total || 0);
+    const eq = Number((state.portfolio || {}).equity || 10000);
+    const pct = eq ? (pnl / Math.max(1, eq - pnl)) * 100 : 0;
+    const liveN = i18n('floor_live_n', '6 桌線上');
+    const tick = `DESK · ${(pct >= 0 ? '+' : '')}${pct.toFixed(2)}% · ${liveN} · COINBASE LIVE · PAPER ONLY · ${slug} · `;
+    ctx.save();
+    ctx.fillStyle = 'rgba(3,6,10,0.82)';
+    ctx.fillRect(8 * dpr, y0, w - 16 * dpr, barH);
+    ctx.strokeStyle = 'rgba(57,255,135,0.28)';
+    ctx.lineWidth = 1 * dpr;
+    ctx.strokeRect(8 * dpr, y0, w - 16 * dpr, barH);
+    ctx.beginPath();
+    ctx.rect(10 * dpr, y0 + 1 * dpr, w - 20 * dpr, barH - 2 * dpr);
+    ctx.clip();
+    ctx.fillStyle = '#39ff87';
+    ctx.font = `700 ${7.5 * dpr}px monospace`;
+    ctx.textAlign = 'left';
+    const scroll = ((t * 38) % 320);
+    ctx.fillText(tick + tick + tick, 14 * dpr - scroll, y0 + barH * 0.72);
+    ctx.restore();
+  }
+
   function drawFloatingHints(t) {
-    // mind31: sparse ambient chips — don't compete with ghost labels
-    const coarse = (typeof matchMedia === 'function') && matchMedia('(pointer: coarse)').matches;
-    if (coarse && Math.sin(t * 0.35) < 0.55) return;
+    // mind32: no ambient chips on dense / touch — they collide with ghosts
+    if (isDense()) return;
     if (canvas.width < 520 * dpr && Math.sin(t * 0.5) < 0.35) return;
     const hints = isZh()
       ? [
@@ -730,6 +784,7 @@
     order.forEach(a => drawGhost(a, t));
     drawGhostLabels();
     drawFloatingHints(t);
+    drawStageHud(t); /* mind32: top strip last so it stays above floor clutter */
 
     ctx.fillStyle = 'rgba(107,122,150,0.78)';
     ctx.font = `600 ${8 * dpr}px monospace`; ctx.textAlign = 'center';

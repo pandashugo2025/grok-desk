@@ -2149,6 +2149,91 @@
     }
   }
 
+
+  /* ===== mind32: compact landscape chrome + floor HUD out of ghosts ===== */
+  @media (orientation: landscape) and (max-height: 1024px) {
+    html.touch-device .topbar {
+      gap: 3px !important;
+      padding: max(4px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 4px max(10px, env(safe-area-inset-left)) !important;
+    }
+    html.touch-device .topbar .tb-row {
+      gap: 6px !important;
+      row-gap: 2px !important;
+    }
+    html.touch-device .topbar .tb-primary .view-toggle button {
+      min-height: 28px !important;
+      padding: 4px 10px !important;
+      font-size: 8px !important;
+    }
+    html.touch-device .topbar .tb-stats {
+      padding-top: 3px !important;
+    }
+    html.touch-device .topbar .tb-stats .metrics {
+      gap: 6px !important;
+    }
+    html.touch-device .topbar .tb-stats .metrics .m b { font-size: 12px !important; }
+    html.touch-device .topbar .tb-stats .metrics .m em { font-size: 7px !important; }
+    html.touch-device .topbar .tb-status .clock { font-size: 15px !important; }
+    html.touch-device .topbar .tb-status .clock-wrap small { display: none !important; }
+    /* Top-right: ONE row, no awkward stack */
+    html.touch-device .topbar .tb-chips {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 6px !important;
+      row-gap: 0 !important;
+      max-width: none !important;
+      flex: 0 1 auto !important;
+      overflow: hidden;
+      justify-content: flex-end;
+    }
+    html.touch-device .topbar .tb-status {
+      flex-wrap: nowrap !important;
+      gap: 8px !important;
+      align-items: center;
+    }
+    html.touch-device .topbar .lang-toggle button {
+      min-width: 30px !important;
+      min-height: 26px !important;
+      padding: 2px 7px !important;
+      font-size: 8px !important;
+    }
+    html.touch-device .topbar .swarm-pill,
+    html.touch-device .topbar .paper-tag,
+    html.touch-device .topbar .share-btn {
+      min-height: 26px !important;
+      padding: 2px 8px !important;
+      font-size: 8px !important;
+      letter-spacing: 0.08em !important;
+      flex-shrink: 0;
+    }
+    /* Agent strip tighter under topbar */
+    html.touch-device .agentbar {
+      padding-top: 3px !important;
+      padding-bottom: 3px !important;
+      gap: 8px !important;
+    }
+    html.touch-device .agent {
+      min-height: 38px !important;
+      padding: 4px 10px !important;
+    }
+    html.touch-device .livewire {
+      height: 22px !important;
+      font-size: 9px !important;
+    }
+  }
+
+  /* Also prevent chip wrap on mid-width touch even in portrait */
+  @media (any-pointer: coarse), (hover: none) {
+    .topbar .tb-chips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      max-width: min(100%, 520px);
+    }
+    .topbar .tb-chips::-webkit-scrollbar { display: none; }
+  }
+
 </style>
 </head>
 <body>
@@ -2373,7 +2458,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind31</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind32</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -2385,8 +2470,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind31"></script>
-<script src="/mind.js?v=20261024mind31"></script>
+<script src="/floor.js?v=20261024mind32"></script>
+<script src="/mind.js?v=20261024mind32"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -2460,7 +2545,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind31',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind32',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -2540,7 +2625,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind31',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind32',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
