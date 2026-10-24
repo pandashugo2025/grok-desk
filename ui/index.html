@@ -1,0 +1,2181 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<script>
+/* iPadOS desktop-class often skips coarse-pointer media; detect touch early */
+(function(){
+  try {
+    if ((navigator.maxTouchPoints|0) > 0 || 'ontouchstart' in window) {
+      document.documentElement.classList.add('touch-device');
+    }
+  } catch (e) {}
+})();
+</script>
+<title>GROK DESK — PAPER</title>
+<style>
+  :root {
+    --bg: #030406;
+    --panel: #07090e;
+    --border: rgba(120,160,200,0.18);
+    --border-hot: rgba(255,77,207,0.45);
+    --cyan: #4de0ff;
+    --pink: #ff4dcf;
+    --orange: #ff8a3d;
+    --gold: #c9a227;
+    --blue: #4d8cff;
+    --teal: #2dd4bf;
+    --purple: #a855f7;
+    --lime: #7CFFB2;
+    --neon: #39ff87;
+    --red: #ff5d7a;
+    --text: #d8e4f8;
+    --muted: #6b7a96;
+    --label: #8a9bb8;
+    font-family: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden; }
+  body {
+    background:
+      radial-gradient(900px 500px at 72% 18%, rgba(255,77,207,0.06), transparent 55%),
+      radial-gradient(700px 420px at 18% 70%, rgba(57,255,135,0.04), transparent 50%),
+      var(--bg);
+  }
+  .desk {
+    display: grid;
+    grid-template-rows: auto auto auto 1fr auto auto;
+    height: 100vh; gap: 0;
+  }
+  .stage { min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+
+  /* ===== TOP BAR ===== */
+  .topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 6px 12px 4px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px; letter-spacing: 0.12em;
+  }
+  .logo {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.22em;
+    color: #fff; text-shadow: 0 0 18px rgba(255,77,207,0.35);
+  }
+  .logo span { color: var(--pink); }
+  .view-toggle {
+    display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; margin-left:4px;
+  }
+  .view-toggle button {
+    background:transparent; border:0; color:var(--muted); font:inherit; font-size:9px;
+    letter-spacing:0.16em; padding:5px 12px; cursor:pointer;
+  }
+  .view-toggle button.on {
+    background:rgba(57,255,135,0.12); color:var(--neon);
+    box-shadow: inset 0 0 12px rgba(57,255,135,0.15);
+  }
+  .metrics { display:flex; gap:16px; margin-left: 8px; }
+  .metrics .m { display:flex; flex-direction:column; line-height:1.15; }
+  .metrics .m b { font-size: 13px; color: var(--lime); letter-spacing: 0.04em; font-variant-numeric:tabular-nums; }
+  .metrics .m b.neg { color: var(--red); }
+  .metrics .m em { font-style:normal; color:var(--muted); font-size:8px; letter-spacing:0.14em; }
+  .clock-wrap { margin-left:auto; text-align:right; }
+  .clock {
+    font-size: 22px; font-weight: 600; letter-spacing: 0.08em;
+    color: #e8f0ff; text-shadow: 0 0 12px rgba(77,224,255,0.35);
+    font-variant-numeric: tabular-nums;
+  }
+  .clock small { display:block; font-size:8px; color:var(--muted); letter-spacing:0.2em; }
+  .swarm-pill {
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 4px 10px; border-radius: 999px;
+    border: 1px solid rgba(124,255,178,0.45); color: var(--lime);
+    font-size: 9px; letter-spacing: 0.16em; margin-left: 10px;
+  }
+  .swarm-pill .dot {
+    width:6px; height:6px; border-radius:50%; background:var(--lime);
+    box-shadow: 0 0 8px var(--lime); animation: blink 1.4s infinite;
+  }
+  .paper-tag {
+    border: 1px solid rgba(255,200,87,0.4); color: #ffc857;
+    padding: 3px 8px; border-radius: 999px; font-size: 8px; letter-spacing: 0.14em;
+    margin-left: 6px;
+  }
+  @keyframes blink { 50% { opacity: 0.35; } }
+  @keyframes bob {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+  }
+
+  /* ===== AGENT BAR ===== */
+  .agentbar {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 6px; padding: 6px 10px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .agent {
+    display:flex; align-items:center; gap:8px;
+    padding: 5px 8px; border: 1px solid var(--border);
+    background: rgba(10,14,22,0.9); min-height: 42px; cursor:pointer;
+  }
+  .agent:hover { border-color: currentColor; }
+  .agent .orb {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid currentColor;
+    box-shadow: 0 0 10px currentColor;
+    display:grid; place-items:center; font-size: 8px; font-weight:700;
+  }
+  .agent .meta { display:flex; flex-direction:column; line-height:1.1; min-width:0; }
+  .agent .name { font-size: 10px; letter-spacing: 0.18em; font-weight:600; }
+  .agent .st { font-size: 8px; color: var(--muted); letter-spacing: 0.12em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .agent.RUNNING { border-color: currentColor; box-shadow: inset 0 0 18px rgba(255,255,255,0.03); }
+  .agent.DONE .st { color: var(--lime); }
+  .agent.QUEUED .st { color: var(--muted); }
+  .agent.RUNNING .st { color: inherit; }
+
+  /* ===== LIVE WIRE ===== */
+  .livewire {
+    height: 22px; overflow: hidden; border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.55); display:flex; align-items:center;
+    font-size: 9px; letter-spacing: 0.08em; color: var(--cyan);
+  }
+  .livewire .tag {
+    flex:0 0 auto; padding: 0 10px; color: var(--pink);
+    border-right: 1px solid var(--border); letter-spacing: 0.18em; font-weight:600;
+  }
+  .livewire .marquee { flex:1; white-space:nowrap; overflow:hidden; position:relative; }
+  .livewire .marquee > span {
+    display:inline-block; padding-left: 100%;
+    animation: scroll 42s linear infinite;
+  }
+  @keyframes scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ===== MAIN ===== */
+  .main {
+    display: grid;
+    grid-template-columns: 210px 1fr 240px;
+    gap: 8px; padding: 8px 10px; min-height: 0;
+  }
+  .desk.view-grid .main { display:none; }
+  .desk.view-mind .swarm-floor { display:none; }
+  .desk.view-mind .main { display:grid; flex:1; min-height:0; }
+  .desk.view-grid .swarm-floor { display:flex; flex:1; min-height:0; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 8px 9px;
+    min-height: 0;
+  }
+  .panel h3 {
+    margin: 0 0 8px; font-size: 9px; letter-spacing: 0.22em;
+    color: var(--label); font-weight: 600;
+  }
+  .left, .right { display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .left .panel, .right .panel { flex:1; }
+
+  /* Signals gauges */
+  .gauge { margin-bottom: 9px; }
+  .gauge .row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 3px; }
+  .gauge .lbl { font-size: 8px; letter-spacing: 0.16em; color: var(--muted); }
+  .gauge .val { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+  .bar {
+    height: 4px; background: rgba(255,255,255,0.05); border-radius: 1px; overflow:hidden;
+    position: relative;
+  }
+  .bar > i {
+    display:block; height:100%; width:0%; transition: width 0.45s ease;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .bar .tail {
+    position:absolute; right:0; top:-1px; width:6px; height:6px; border-radius:50%;
+    background: currentColor; box-shadow: 0 0 8px currentColor; opacity:0.9;
+  }
+
+  /* Center mind */
+  .center {
+    position: relative; display:flex; flex-direction:column;
+    border: 1px solid var(--border); background: rgba(4,8,14,0.92);
+    min-height: 0;
+  }
+  .center .hdr {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 6px 10px; border-bottom: 1px solid var(--border);
+    font-size: 9px; letter-spacing: 0.2em; color: var(--muted);
+  }
+  .center .hdr b { color: var(--cyan); }
+  .mind-wrap { flex:1; position:relative; min-height: 280px; overflow:hidden; }
+  #armillary { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .mind-overlay {
+    position:absolute; inset:0; pointer-events:none;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    padding-bottom: 2%;
+  }
+  .mind-action {
+    font-size: 22px; letter-spacing: 0.2em; font-weight: 700;
+    text-shadow: 0 0 24px rgba(255,77,207,0.55), 0 0 40px rgba(0,0,0,0.8);
+    color: var(--pink);
+    background: rgba(3,4,8,0.35);
+    padding: 2px 10px; border-radius: 4px;
+  }
+  .mind-sub { margin-top: 4px; font-size: 9px; letter-spacing: 0.18em; color: var(--muted); }
+  .mind-cap {
+    position:absolute; bottom: 8px; left:0; right:0; text-align:center;
+    font-size: 8px; letter-spacing: 0.16em; color: rgba(107,122,150,0.85);
+  }
+
+  /* Command stack */
+  .cmd-hero {
+    border: 1px solid var(--border-hot);
+    padding: 8px; margin-bottom: 8px;
+    background: rgba(255,77,207,0.04);
+  }
+  .cmd-hero .who {
+    font-size: 16px; letter-spacing: 0.2em; color: var(--pink); font-weight:700;
+  }
+  .cmd-hero .ticket { font-size: 10px; color: var(--text); margin-top: 4px; letter-spacing: 0.06em; }
+  .cmd-hero .meta { font-size: 8px; color: var(--muted); margin-top: 4px; letter-spacing: 0.1em; }
+  .stack-list, .handoff-list, .trace-list, .activity-list, .holding-list {
+    font-size: 9px; line-height: 1.45; overflow:auto; max-height: 100%;
+  }
+  .stack-list .row, .handoff-list .row, .trace-list .row {
+    padding: 3px 0; border-bottom: 1px dashed rgba(80,120,160,0.12);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ag { margin-right: 6px; font-weight: 600; }
+  .tm { color: var(--muted); margin-right: 6px; }
+
+  /* ===== SWARM GRID (desk floor) ===== */
+  .swarm-floor {
+    display:none; flex-direction:column; gap:8px;
+    padding: 8px 10px; min-height:0; overflow:hidden;
+  }
+  .desk.view-grid .swarm-floor { display:flex; }
+  .floor-hdr {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:9px; letter-spacing:0.2em; color:var(--muted);
+  }
+  .floor-hdr b { color: var(--neon); }
+  .floor-stage {
+    flex:1; position:relative; min-height: 240px; overflow:hidden;
+    border: 1px solid rgba(57,255,135,0.18);
+    background: #030406; border-radius: 4px;
+  }
+  #floorCanvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:pointer; }
+  .floor-grid { display:none;
+    flex:1; display:grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
+    gap: 10px; min-height: 220px;
+    perspective: 1200px;
+  }
+  .floor-card {
+    position:relative; border:1px solid var(--border);
+    background:
+      linear-gradient(160deg, rgba(20,28,40,0.95), rgba(6,8,14,0.98)),
+      repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(57,255,135,0.03) 19px);
+    border-radius: 6px; padding: 10px 12px;
+    cursor:pointer; overflow:hidden;
+    transform: rotateX(6deg) rotateY(-2deg);
+    transition: transform 0.35s ease, border-color 0.25s, box-shadow 0.35s;
+    display:flex; flex-direction:column;
+  }
+  .floor-card:hover, .floor-card:focus {
+    transform: rotateX(0) scale(1.02);
+    border-color: currentColor;
+    box-shadow: 0 0 28px rgba(57,255,135,0.12), inset 0 0 30px rgba(255,255,255,0.02);
+  }
+  .floor-card .fc-top {
+    display:flex; justify-content:space-between; align-items:flex-start;
+    font-size:9px; letter-spacing:0.18em;
+  }
+  .floor-card .fc-name { font-weight:700; font-size:12px; }
+  .floor-card .fc-st {
+    font-size:8px; padding:2px 6px; border-radius:999px;
+    border:1px solid currentColor; opacity:0.85;
+  }
+  .floor-card .ghost-wrap {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    position:relative; min-height:90px;
+  }
+  .ghost {
+    width: 52px; height: 58px; position:relative;
+    animation: bob 2.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 12px currentColor);
+  }
+  .ghost .body {
+    width:100%; height:78%; border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+    background: currentColor;
+    position:relative;
+  }
+  .ghost .feet {
+    position:absolute; left:0; right:0; bottom:0; height:28%;
+    display:flex;
+  }
+  .ghost .feet i {
+    flex:1; background:currentColor;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 55%, 0 100%);
+  }
+  .ghost .eye {
+    position:absolute; top:18px; width:8px; height:14px; background:#0a0c12;
+    border-radius:4px; transform:rotate(-12deg);
+  }
+  .ghost .eye.l { left:14px; }
+  .ghost .eye.r { right:14px; transform:rotate(12deg); }
+  .ghost .headset {
+    position:absolute; top:8px; left:-6px; right:-6px; height:10px;
+    border:2px solid rgba(255,255,255,0.55); border-bottom:0; border-radius:10px 10px 0 0;
+    pointer-events:none;
+  }
+  .speech {
+    position:absolute; top: 6px; left:50%; transform:translateX(-50%);
+    background: rgba(8,10,18,0.92); border:1px solid currentColor;
+    color:#e8f0ff; font-size:8px; letter-spacing:0.08em;
+    padding:3px 8px; border-radius:4px; white-space:nowrap; max-width:90%;
+    overflow:hidden; text-overflow:ellipsis; z-index:2;
+  }
+  .speech::after {
+    content:""; position:absolute; left:50%; bottom:-5px; width:8px; height:5px;
+    background:rgba(8,10,18,0.92); border-left:1px solid currentColor; border-bottom:1px solid currentColor;
+    transform:translateX(-50%) rotate(45deg);
+  }
+  .floor-card .fc-foot {
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:8px; color:var(--muted); letter-spacing:0.1em; margin-top:4px;
+  }
+  .floor-card .fc-foot b { color:var(--text); font-size:11px; letter-spacing:0.04em; }
+  .floor-card .mini-chart {
+    height:28px; width:100%; margin-top:4px; opacity:0.85;
+  }
+  .zoom-hint {
+    font-size:8px; color:var(--muted); letter-spacing:0.14em;
+  }
+
+  /* ===== BOTTOM ===== */
+  .bottom {
+    display: grid;
+    grid-template-columns: 1.35fr 1.1fr 1.15fr;
+    gap: 6px; padding: 0 10px 6px; min-height: 190px; max-height: 230px;
+  }
+  .bottom .panel { display:flex; flex-direction:column; overflow:hidden; }
+  .deck-bal .deck-row {
+    display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
+  }
+  .deck-bal .equity {
+    font-size: 28px; font-weight: 700; letter-spacing: 0.02em;
+    color: #fff; font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(57,255,135,0.2);
+  }
+  .deck-bal .pnl-line {
+    font-size: 12px; color: var(--neon); letter-spacing: 0.04em; margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .deck-bal .pnl-line.neg { color: var(--red); }
+  .tf-row { display:flex; gap:4px; }
+  .tf-row button {
+    background: transparent; border:1px solid var(--border); color:var(--muted);
+    font:inherit; font-size:8px; letter-spacing:0.12em; padding:3px 8px; cursor:pointer; border-radius:3px;
+  }
+  .tf-row button.on {
+    border-color: var(--neon); color: var(--neon);
+    background: rgba(57,255,135,0.1); box-shadow: 0 0 10px rgba(57,255,135,0.15);
+  }
+  canvas.chart { width:100%; flex:1; min-height: 70px; }
+
+  .holding-row {
+    display:flex; align-items:center; gap:8px;
+    padding: 6px 0; border-bottom: 1px solid rgba(80,120,160,0.12);
+  }
+  .holding-row .av {
+    width:26px; height:26px; border-radius:50%;
+    border:2px solid currentColor; box-shadow:0 0 8px currentColor;
+    display:grid; place-items:center; font-size:9px; font-weight:700; flex:0 0 auto;
+  }
+  .holding-row .meta { flex:1; min-width:0; }
+  .holding-row .nm { font-size:10px; letter-spacing:0.14em; font-weight:600; }
+  .holding-row .sub { font-size:8px; color:var(--muted); letter-spacing:0.08em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .holding-row .val { text-align:right; font-variant-numeric:tabular-nums; }
+  .holding-row .val b { display:block; font-size:11px; color:var(--text); }
+  .holding-row .val em { font-style:normal; font-size:9px; color:var(--neon); }
+  .holding-row .val em.neg { color:var(--red); }
+
+  .activity-list .act {
+    display:flex; align-items:flex-start; gap:8px;
+    padding: 5px 0; border-bottom: 1px dashed rgba(80,120,160,0.12);
+  }
+  .activity-list .ico {
+    width:18px; height:18px; border-radius:4px; flex:0 0 auto;
+    display:grid; place-items:center; font-size:9px; font-weight:700;
+    border:1px solid currentColor; background:rgba(0,0,0,0.35);
+  }
+  .activity-list .body { flex:1; min-width:0; }
+  .activity-list .msg { font-size:9px; letter-spacing:0.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .activity-list .when { font-size:7px; color:var(--muted); letter-spacing:0.1em; }
+
+  .footer {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 3px 12px 5px; border-top: 1px solid var(--border);
+    font-size: 8px; color: var(--muted); letter-spacing: 0.14em;
+  }
+  .footer .warn { color: #ffc857; }
+
+  @media (max-width: 1200px) {
+    .main { grid-template-columns: 180px 1fr 200px; }
+    .floor-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
+    .bottom { grid-template-columns: 1fr 1fr; max-height: none; }
+  }
+
+
+  /* ===== FOLLOW / 跟倉觀察 ===== */
+  .follow-panel {
+    display:none; flex-direction:column; gap:8px;
+    padding: 8px 10px; min-height:0; overflow:hidden; flex:1;
+  }
+  .desk.view-follow .follow-panel { display:flex; }
+  .desk.view-follow .swarm-floor,
+  .desk.view-follow .main { display:none !important; }
+  .desk.view-follow .bottom { display:none; }
+  .desk.view-grid .follow-panel,
+  .desk.view-mind .follow-panel { display:none; }
+
+  .follow-toolbar {
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    font-size:9px; letter-spacing:0.1em; color:var(--muted);
+  }
+  .follow-toolbar label { display:inline-flex; align-items:center; gap:6px; }
+  .follow-toolbar select, .follow-toolbar input {
+    background:#0a0e16; border:1px solid var(--border); color:var(--text);
+    font:inherit; font-size:10px; padding:6px 8px; border-radius:4px; min-height:34px;
+  }
+  .follow-toolbar input { min-width: 140px; }
+  .follow-toolbar .hint { margin-left:auto; color:var(--muted); font-size:8px; letter-spacing:0.12em; }
+  .follow-toolbar .hint b { color: var(--neon); }
+
+  .follow-body {
+    display:grid; grid-template-columns: 1.15fr 0.85fr; gap:8px; min-height:0; flex:1; overflow:hidden;
+  }
+  .follow-table-wrap, .follow-detail {
+    border:1px solid var(--border); background:rgba(7,9,14,0.95);
+    border-radius:4px; overflow:hidden; display:flex; flex-direction:column; min-height:0;
+  }
+  .follow-table-wrap { overflow:auto; -webkit-overflow-scrolling:touch; }
+  table.follow-table {
+    width:100%; border-collapse:collapse; font-size:10px; letter-spacing:0.04em;
+  }
+  table.follow-table th {
+    position:sticky; top:0; background:#0c1018; color:var(--label);
+    text-align:left; padding:8px 8px; font-weight:600; letter-spacing:0.14em;
+    border-bottom:1px solid var(--border); font-size:8px; z-index:1;
+  }
+  table.follow-table td {
+    padding:7px 8px; border-bottom:1px solid rgba(80,120,160,0.1);
+    vertical-align:middle; font-variant-numeric:tabular-nums;
+  }
+  table.follow-table tr { cursor:pointer; }
+  table.follow-table tr:hover td { background:rgba(57,255,135,0.04); }
+  table.follow-table tr.on td {
+    background:rgba(77,224,255,0.07);
+    box-shadow: inset 2px 0 0 var(--cyan);
+  }
+  .tag-strat {
+    display:inline-block; padding:2px 6px; border-radius:999px;
+    border:1px solid currentColor; font-size:8px; letter-spacing:0.08em;
+  }
+  .tag-strat.mm { color:#4de0ff; }
+  .tag-strat.arb { color:#c9a227; }
+  .tag-strat.snip { color:#ff4dcf; }
+  .tag-strat.unk { color:var(--muted); }
+  .pnl-pos { color: var(--neon); }
+  .pnl-neg { color: var(--red); }
+  .addr-short { color:var(--muted); font-size:8px; }
+
+  .follow-detail { padding:10px 12px; overflow:auto; }
+  .follow-detail .fd-head {
+    display:flex; justify-content:space-between; gap:8px; align-items:flex-start;
+    margin-bottom:8px;
+  }
+  .follow-detail .fd-name { font-size:14px; font-weight:700; letter-spacing:0.08em; color:#fff; }
+  .follow-detail .fd-meta { font-size:9px; color:var(--muted); letter-spacing:0.1em; margin-top:4px; }
+  .follow-detail .fd-link {
+    font-size:8px; color:var(--cyan); text-decoration:none; border:1px solid rgba(77,224,255,0.35);
+    padding:4px 8px; border-radius:999px; letter-spacing:0.12em; white-space:nowrap;
+  }
+  .follow-detail h4 {
+    margin:12px 0 6px; font-size:9px; letter-spacing:0.18em; color:var(--label); font-weight:600;
+  }
+  .follow-detail textarea {
+    width:100%; min-height:72px; background:#06080e; border:1px solid var(--border);
+    color:var(--text); font:inherit; font-size:11px; padding:8px; border-radius:4px; resize:vertical;
+  }
+  .follow-detail .note-hint { font-size:8px; color:var(--muted); margin-top:4px; letter-spacing:0.1em; }
+  .act-row {
+    display:flex; gap:8px; padding:6px 0; border-bottom:1px dashed rgba(80,120,160,0.12);
+    font-size:9px;
+  }
+  .act-row .side { flex:0 0 42px; font-weight:700; letter-spacing:0.08em; }
+  .act-row .side.BUY { color:var(--neon); }
+  .act-row .side.SELL { color:var(--red); }
+  .act-row .side.OTHER { color:var(--muted); }
+  .act-row .body { flex:1; min-width:0; }
+  .act-row .title { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .act-row .sub { color:var(--muted); font-size:8px; margin-top:2px; }
+  .mkt-chip {
+    display:inline-block; margin:0 6px 6px 0; padding:3px 8px; border-radius:999px;
+    border:1px solid var(--border); font-size:8px; color:var(--text); max-width:100%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .follow-empty {
+    padding:24px; text-align:center; color:var(--muted); font-size:11px; letter-spacing:0.12em;
+  }
+
+  @media (max-width: 900px) {
+    .follow-body { grid-template-columns: 1fr; grid-template-rows: minmax(220px, 45%) 1fr; }
+    .follow-toolbar .hint { width:100%; margin-left:0; }
+    .view-toggle button { padding:5px 8px; font-size:8px; }
+  }
+  
+  
+  .live-pill {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:999px; font-size:8px; letter-spacing:0.14em;
+    border:1px solid var(--border); color:var(--muted); margin-left:4px;
+  }
+  .live-pill .ldot {
+    width:7px; height:7px; border-radius:50%; background:#555;
+  }
+  .live-pill.on { border-color:rgba(57,255,135,0.45); color:var(--neon); }
+  .live-pill.on .ldot { background:var(--neon); box-shadow:0 0 8px var(--neon); animation: blink 1.2s infinite; }
+  .live-pill.warn { border-color:rgba(255,200,87,0.45); color:#ffc857; }
+  .live-pill.warn .ldot { background:#ffc857; }
+  .live-pill.off .ldot { background:#666; }
+  .follow-toolbar .interval-tog {
+    display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden;
+  }
+  .follow-toolbar .interval-tog button {
+    background:transparent; border:0; color:var(--muted); font:inherit; font-size:8px;
+    letter-spacing:0.1em; padding:5px 8px; cursor:pointer; min-height:32px;
+  }
+  .follow-toolbar .interval-tog button.on {
+    background:rgba(77,224,255,0.12); color:var(--cyan);
+  }
+  .act-row.act-new {
+    background:rgba(57,255,135,0.12);
+    box-shadow: inset 3px 0 0 var(--neon);
+    animation: actFlash 2.8s ease-out;
+  }
+  @keyframes actFlash {
+    0% { background:rgba(57,255,135,0.28); }
+    100% { background:transparent; }
+  }
+
+  .follow-toolbar .btn-refresh {
+    background: rgba(57,255,135,0.08); border:1px solid rgba(57,255,135,0.4);
+    color: var(--neon); font:inherit; font-size:9px; letter-spacing:0.12em;
+    padding:6px 12px; border-radius:4px; cursor:pointer; min-height:34px;
+  }
+  .follow-toolbar .btn-refresh:disabled { opacity:0.45; cursor:wait; }
+  .follow-toolbar .csv-age { color:var(--muted); font-size:8px; letter-spacing:0.1em; }
+  .follow-toolbar .csv-age b { color:var(--cyan); }
+  .follow-detail .fd-status {
+    padding:10px 12px; border-radius:4px; margin:8px 0; font-size:10px; letter-spacing:0.08em;
+  }
+  .follow-detail .fd-status.loading {
+    border:1px dashed rgba(77,224,255,0.35); color:var(--cyan);
+    background:rgba(77,224,255,0.05);
+  }
+  .follow-detail .fd-status.error {
+    border:1px solid rgba(255,93,122,0.45); color:var(--red);
+    background:rgba(255,93,122,0.08);
+  }
+  .follow-detail .fd-status.empty {
+    border:1px solid var(--border); color:var(--muted);
+  }
+  .follow-detail .btn-reload-act {
+    background:transparent; border:1px solid var(--border); color:var(--cyan);
+    font:inherit; font-size:8px; letter-spacing:0.12em; padding:4px 8px;
+    border-radius:3px; cursor:pointer; margin-left:8px;
+  }
+  .act-row .dir { color:var(--label); margin-right:4px; }
+  .follow-detail .fd-back {
+    display:none; background:transparent; border:1px solid var(--border);
+    color:var(--muted); font:inherit; font-size:9px; letter-spacing:0.14em;
+    padding:6px 10px; border-radius:4px; cursor:pointer; margin-bottom:8px;
+  }
+  @media (max-width: 900px) {
+    .follow-panel.detail-open .follow-table-wrap { display:none; }
+    .follow-panel.detail-open .follow-body { grid-template-rows: 1fr; }
+    .follow-panel.detail-open .follow-detail { display:flex; }
+    .follow-detail .fd-back { display:inline-flex; align-items:center; gap:4px; }
+  }
+
+  @media (max-width: 768px) {
+    .desk.view-follow .agentbar { display:none; }
+    table.follow-table th:nth-child(4), table.follow-table td:nth-child(4) { display:none; }
+    .follow-body { grid-template-rows: minmax(180px, 42%) 1fr; }
+    .follow-toolbar select, .follow-toolbar input { min-height:40px; font-size:12px; }
+    table.follow-table { font-size:11px; }
+    table.follow-table th, table.follow-table td { padding:10px 8px; }
+  }
+
+  /* ===== LANG TOGGLE ===== */
+  .lang-toggle {
+    display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; margin-left:6px;
+  }
+  .lang-toggle button {
+    background:transparent; border:0; color:var(--muted); font:inherit; font-size:9px;
+    letter-spacing:0.08em; padding:5px 10px; cursor:pointer; min-width:36px; min-height:32px;
+  }
+  .lang-toggle button.on {
+    background:rgba(77,224,255,0.12); color:var(--cyan);
+    box-shadow: inset 0 0 12px rgba(77,224,255,0.12);
+  }
+
+  /* ===== MOBILE SIDE TABS ===== */
+  .mobile-side-tabs { display:none; }
+  .panel-collapse-btn { display:none; }
+
+  /* ===== TOUCH DEVICE (iPadOS desktop-class / landscape; JS class) ===== */
+  html.touch-device,
+  html.touch-device body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: clip;
+    overflow-y: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+  html.touch-device .desk {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  html.touch-device .stage {
+    overflow: visible;
+    min-height: 0;
+  }
+  html.touch-device .follow-panel {
+    overflow: visible;
+    flex: 1 1 auto;
+    min-height: min(70dvh, 720px);
+  }
+  html.touch-device .follow-body {
+    overflow: visible;
+    min-height: 0;
+  }
+  html.touch-device .follow-table-wrap,
+  html.touch-device .follow-detail {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    max-height: min(68dvh, 680px);
+  }
+  html.touch-device .bottom {
+    overflow: visible;
+    max-height: none;
+  }
+  html.touch-device .bottom .panel {
+    overflow: visible;
+    max-height: none;
+  }
+  html.touch-device .holding-list,
+  html.touch-device .activity-list,
+  html.touch-device .stack-list,
+  html.touch-device .handoff-list,
+  html.touch-device .trace-list {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    max-height: min(42dvh, 360px);
+    overflow: auto;
+  }
+  html.touch-device #armillary,
+  html.touch-device #floorCanvas,
+  html.touch-device .mind-wrap,
+  html.touch-device .floor-stage {
+    touch-action: pan-y;
+  }
+
+  /* ===== TABLET / iPad (coarse pointer, no-hover, or narrow; + touch-device class above) ===== */
+  @media (any-pointer: coarse), (hover: none), (max-width: 1180px) {
+    html, body {
+      height: auto;
+      min-height: 100%;
+      overflow-x: clip;
+      overflow-y: auto;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+    .desk {
+      height: auto;
+      min-height: 100dvh;
+      overflow: visible;
+    }
+    .stage {
+      overflow: visible;
+      min-height: 0;
+    }
+    .follow-panel {
+      overflow: visible;
+      flex: 1 1 auto;
+      min-height: min(70dvh, 720px);
+    }
+    .follow-body {
+      overflow: visible;
+      min-height: 0;
+    }
+    .follow-table-wrap,
+    .follow-detail {
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      max-height: min(68dvh, 680px);
+    }
+    .bottom {
+      overflow: visible;
+      max-height: none;
+    }
+    .bottom .panel {
+      overflow: visible;
+      max-height: none;
+    }
+    .holding-list,
+    .activity-list,
+    .stack-list,
+    .handoff-list,
+    .trace-list {
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      max-height: min(42dvh, 360px);
+      overflow: auto;
+    }
+    /* Canvases: allow vertical page scroll (Mind auto-orbits; Floor is tap-only) */
+    #armillary,
+    #floorCanvas,
+    .mind-wrap,
+    .floor-stage {
+      touch-action: pan-y;
+    }
+  }
+
+  /* ===== ≤768px ===== */
+  @media (max-width: 768px) {
+    html, body {
+      height: auto; min-height: 100%;
+      overflow-x: clip; overflow-y: auto; width: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+    body {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    .desk {
+      height: auto;
+      min-height: 100dvh;
+      grid-template-rows: auto;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .topbar {
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: max(8px, env(safe-area-inset-top)) 10px 8px;
+      align-items: center;
+    }
+    .logo { font-size: 12px; letter-spacing: 0.16em; }
+    .view-toggle { margin-left: 0; }
+    .view-toggle button {
+      padding: 8px 12px; min-height: 40px; font-size: 9px;
+    }
+    .metrics {
+      margin-left: 0; gap: 12px; width: 100%;
+      order: 5; justify-content: space-between;
+      padding-top: 4px; border-top: 1px solid rgba(120,160,200,0.1);
+    }
+    .metrics .m b { font-size: 12px; }
+    .clock-wrap { margin-left: auto; }
+    .clock { font-size: 16px; }
+    .swarm-pill { margin-left: 0; padding: 6px 10px; min-height: 32px; }
+    .paper-tag { margin-left: 0; padding: 6px 10px; }
+    .lang-toggle { margin-left: auto; }
+
+    .agentbar {
+      display: flex;
+      grid-template-columns: none;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      gap: 8px;
+      padding: 8px 10px;
+      scrollbar-width: thin;
+      max-width: 100%;
+      scroll-snap-type: x proximity;
+      mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 28px), transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 28px), transparent 100%);
+    }
+    .agent { scroll-snap-align: start; }
+    .agent {
+      flex: 0 0 auto;
+      min-width: 128px;
+      min-height: 48px;
+      padding: 8px 10px;
+    }
+    .agent .orb { width: 28px; height: 28px; font-size: 10px; }
+    .agent .name { font-size: 11px; }
+    .agent .st { font-size: 9px; }
+
+    .livewire { height: 28px; font-size: 10px; }
+    .livewire .tag { padding: 0 8px; font-size: 9px; }
+
+    .stage { min-height: 0; }
+    .desk.view-mind .main {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 10px;
+    }
+    .main .left, .main .right { width: 100%; }
+    .main .center {
+      order: 0;
+      min-height: 340px;
+      width: 100%;
+    }
+    .mind-wrap { min-height: 300px; height: min(52vh, 420px); }
+    .mind-action { font-size: 18px; }
+    .mind-cap { font-size: 7px; padding: 0 8px; line-height: 1.35; }
+
+    .mobile-side-tabs {
+      display: flex;
+      gap: 6px;
+      order: 1;
+      padding: 0;
+    }
+    .mobile-side-tabs button {
+      flex: 1;
+      background: rgba(10,14,22,0.9);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font: inherit;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      padding: 10px 8px;
+      min-height: 44px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .mobile-side-tabs button.on {
+      color: var(--cyan);
+      border-color: rgba(77,224,255,0.45);
+      background: rgba(77,224,255,0.08);
+    }
+    .main .left, .main .right {
+      display: none;
+      order: 2;
+    }
+    .desk.side-signals .main .left { display: flex; }
+    .desk.side-cmd .main .right { display: flex; }
+    .left .panel, .right .panel { max-height: 280px; overflow: auto; }
+
+    .swarm-floor {
+      padding: 8px 10px;
+      min-height: 380px;
+    }
+    .floor-hdr {
+      flex-wrap: wrap; gap: 6px;
+      font-size: 8px;
+    }
+    .floor-stage { min-height: 340px; height: min(55vh, 480px); }
+    .zoom-hint { display: none; }
+
+    .bottom {
+      grid-template-columns: 1fr;
+      max-height: none;
+      min-height: 0;
+      gap: 8px;
+      padding: 0 10px max(10px, env(safe-area-inset-bottom));
+      overflow: visible;
+    }
+    .bottom .panel {
+      min-height: 200px;
+      max-height: none;
+    }
+    .deck-bal .equity { font-size: 24px; }
+    .tf-row button {
+      padding: 8px 12px; min-height: 36px; font-size: 9px;
+    }
+    .footer {
+      flex-wrap: wrap; gap: 4px;
+      padding: 6px 10px max(8px, env(safe-area-inset-bottom));
+      font-size: 7px;
+    }
+    #backGrid {
+      padding: 8px 12px !important;
+      min-height: 36px;
+      font-size: 9px !important;
+    }
+  }
+
+  /* ===== ≤390px (real phone) ===== */
+  @media (max-width: 390px) {
+    .topbar { gap: 6px; padding: max(6px, env(safe-area-inset-top)) 8px 6px; }
+    .logo { font-size: 11px; letter-spacing: 0.12em; }
+    .view-toggle button { padding: 8px 10px; min-height: 40px; font-size: 8px; letter-spacing: 0.1em; }
+    .lang-toggle button { min-width: 40px; min-height: 40px; padding: 8px 10px; }
+    .metrics { gap: 8px; }
+    .metrics .m b { font-size: 11px; }
+    .metrics .m em { font-size: 7px; }
+    .clock { font-size: 14px; }
+    .clock-wrap small { display: none; }
+    .swarm-pill, .paper-tag { font-size: 8px; padding: 6px 8px; min-height: 36px; }
+    .agent { min-width: 112px; min-height: 48px; padding: 8px; }
+    .agent .name { font-size: 10px; }
+    .agent .st { font-size: 8px; max-width: 72px; }
+    .livewire { height: 26px; font-size: 9px; }
+    .swarm-floor { padding: 6px 8px; min-height: 320px; }
+    .floor-stage { min-height: 300px; height: min(48vh, 400px); }
+    .floor-hdr { font-size: 7px; }
+    .main .center { min-height: 280px; }
+    .mind-wrap { min-height: 260px; height: min(46vh, 360px); }
+    .mind-action { font-size: 16px; }
+    .mobile-side-tabs button { min-height: 44px; font-size: 9px; padding: 10px 6px; }
+    .bottom { padding: 0 8px max(10px, env(safe-area-inset-bottom)); gap: 6px; }
+    .bottom .panel { min-height: 180px; padding: 8px; }
+    .deck-bal .equity { font-size: 22px; }
+    .pnl-stats { flex-wrap: wrap; gap: 8px !important; }
+    .tf-row button { min-width: 44px; min-height: 40px; padding: 8px 10px; }
+    .holding-row, .activity-list .row { min-height: 40px; }
+    .footer { font-size: 6.5px; letter-spacing: 0.08em; }
+    #backGrid { min-height: 40px !important; padding: 8px 12px !important; }
+    /* prevent horizontal bleed */
+    .desk, .stage, .bottom, .topbar, .agentbar { max-width: 100vw; }
+    .marquee { max-width: calc(100vw - 72px); }
+  }
+
+  /* tap highlight / overflow safety */
+  @media (max-width: 768px) {
+    button, .agent, .view-toggle button, .lang-toggle button, .tf-row button {
+      -webkit-tap-highlight-color: rgba(77,224,255,0.15);
+      touch-action: manipulation;
+    }
+    #armillary, #floorCanvas {
+      -webkit-tap-highlight-color: rgba(77,224,255,0.15);
+      touch-action: pan-y;
+    }
+    .holding-list, .activity-list, .follow-table-wrap, .follow-detail {
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+    .topbar .metrics .m { min-width: 0; }
+    .agentbar { overscroll-behavior-x: contain; touch-action: pan-x; }
+  }
+</style>
+</head>
+<body>
+<div class="desk view-grid" id="deskRoot">
+  <div class="topbar">
+    <div class="logo">GROK <span>DESK</span></div>
+    <div class="view-toggle" id="viewToggle">
+      <button type="button" data-view="grid" class="on" data-i18n="btn_grid">群體網格</button>
+      <button type="button" data-view="mind" data-i18n="btn_mind">思維球網</button>
+      <button type="button" data-view="follow" data-i18n="btn_follow">跟倉觀察</button>
+    </div>
+    <div class="lang-toggle" id="langToggle" title="Language">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="zh" class="on">繁中</button>
+    </div>
+    <div class="metrics">
+      <div class="m"><b id="acctVal">$10,000</b><em data-i18n="m_account">帳戶 · 紙上</em></div>
+      <div class="m"><b id="swarmPnl">$0.00</b><em data-i18n="m_pnl">群體損益</em></div>
+      <div class="m"><b id="cycleN">0</b><em data-i18n="m_cycle">週期</em></div>
+    </div>
+    <div class="clock-wrap">
+      <div class="clock" id="clock">00:00:00</div>
+      <small data-i18n="clock_sub">UTC · 下方亦顯示 HKT</small>
+    </div>
+    <div class="swarm-pill"><span class="dot"></span><span id="swarmLabel">群體線上</span></div>
+    <div class="paper-tag" data-i18n="paper_tag">紙上 · 模擬</div>
+  </div>
+
+  <div class="agentbar" id="agentBar"></div>
+
+  <div class="livewire">
+    <div class="tag" data-i18n="live_wire">即時線路</div>
+    <div class="marquee"><span id="wireText">等待群體…</span></div>
+  </div>
+
+  <div class="stage">
+  <!-- SWARM GRID / desk floor overview -->
+  <div class="swarm-floor" id="swarmFloor">
+    <div class="floor-hdr">
+      <span><span data-i18n="desk_floor">交易台地板</span> · <b id="floorLiveN">6 桌線上</b></span>
+      <span class="zoom-hint" data-i18n="zoom_hint">點擊 Bot／工位 → 思維球網</span>
+    </div>
+    <div class="floor-stage">
+      <canvas id="floorCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- MIND focus -->
+  <div class="main" id="mindMain">
+    <div class="left">
+      <div class="panel">
+        <h3 data-i18n="signals_in">輸入訊號</h3>
+        <div id="gauges"></div>
+      </div>
+    </div>
+
+    <div class="center">
+      <div class="hdr">
+        <span data-i18n="the_mind">思維球網</span>
+        <b id="mindMeta">ARMILLARY · PAPER</b>
+        <button type="button" id="backGrid" style="background:transparent;border:1px solid var(--border);color:var(--muted);font:inherit;font-size:8px;letter-spacing:0.14em;padding:3px 8px;cursor:pointer;border-radius:3px;" data-i18n="back_grid">← 網格</button>
+      </div>
+      <div class="mind-wrap">
+        <canvas id="armillary"></canvas>
+        <div class="mind-overlay">
+          <div class="mind-action" id="action">HOLD</div>
+          <div class="mind-sub" id="actionSub">週期 0</div>
+        </div>
+        <div class="mind-cap" data-i18n="mind_cap">GROK 渾儀 — 赤道是時鐘 — 經線是價格 — 代理在軌道 · 僅紙上模擬</div>
+      </div>
+    </div>
+
+    <div class="mobile-side-tabs" id="mobileSideTabs">
+      <button type="button" data-side="signals" class="on" data-i18n="tab_signals">訊號</button>
+      <button type="button" data-side="cmd" data-i18n="tab_cmd">指令堆疊</button>
+    </div>
+
+    <div class="right">
+      <div class="panel">
+        <h3 data-i18n="cmd_stack">指令堆疊</h3>
+        <div class="cmd-hero">
+          <div class="who" id="cmdWho">EDGE</div>
+          <div class="ticket" id="cmdTicket">—</div>
+          <div class="meta" id="cmdMeta">等待中</div>
+        </div>
+        <div class="stack-list" id="stackList"></div>
+        <h3 style="margin-top:10px" data-i18n="handoff_log">交接紀錄</h3>
+        <div class="handoff-list" id="handoffList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOLLOW / 跟倉觀察 -->
+  <div class="follow-panel" id="followPanel">
+    <div class="follow-toolbar">
+      <label><span data-i18n="follow_strat">策略</span>
+        <select id="followStrat">
+          <option value="all" data-i18n="follow_all">全部</option>
+        </select>
+      </label>
+      <label><span data-i18n="follow_min_pnl">最低損益</span>
+        <select id="followMinPnl">
+          <option value="">—</option>
+          <option value="1000000">≥ $1M</option>
+          <option value="5000000">≥ $5M</option>
+          <option value="10000000">≥ $10M</option>
+        </select>
+      </label>
+      <label><span data-i18n="follow_sort">排序</span>
+        <select id="followSort">
+          <option value="rank" data-i18n="follow_sort_rank">名次</option>
+          <option value="pnl_desc" data-i18n="follow_sort_pnl_desc">損益高→低</option>
+          <option value="pnl_asc" data-i18n="follow_sort_pnl_asc">損益低→高</option>
+          <option value="vol_desc" data-i18n="follow_sort_vol_desc">成交量高→低</option>
+        </select>
+      </label>
+      <label><span data-i18n="follow_search">搜尋</span>
+        <input id="followQ" type="search" placeholder="name / 0x…" autocomplete="off" />
+      </label>
+      <button type="button" class="btn-refresh" id="followRefreshBtn" data-i18n="follow_refresh">刷新蜘蛛</button>
+      <span class="live-pill off" id="followLivePill" title="SSE"><span class="ldot"></span><span data-i18n="follow_live">準即時·SSE</span></span>
+      <span class="interval-tog" id="followInterval" title="poll">
+        <button type="button" data-iv="5">5s</button>
+        <button type="button" data-iv="15" class="on">15s</button>
+        <button type="button" data-iv="30">30s</button>
+      </span>
+      <span class="csv-age" id="followCsvAge"><span data-i18n="follow_csv_age">CSV 年齡</span> <b>—</b></span>
+      <span class="hint" id="followHint"><span data-i18n="follow_hint">前百錢包 · 僅觀察</span> · <b id="followCount">0</b></span>
+    </div>
+    <div class="follow-body">
+      <div class="follow-table-wrap">
+        <table class="follow-table">
+          <thead>
+            <tr>
+              <th data-i18n="col_rank">#</th>
+              <th data-i18n="col_wallet">錢包</th>
+              <th data-i18n="col_pnl">損益</th>
+              <th data-i18n="col_vol">成交量</th>
+              <th data-i18n="col_strat">策略標籤</th>
+            </tr>
+          </thead>
+          <tbody id="followTbody">
+            <tr><td colspan="5" class="follow-empty" data-i18n="follow_loading">載入中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="follow-detail" id="followDetail">
+        <div class="follow-empty" data-i18n="follow_pick">點選左側錢包查看公開活動</div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /.stage -->
+
+  <div class="bottom">
+    <div class="panel deck-bal">
+      <div class="deck-row">
+        <div>
+          <h3 style="margin:0 0 4px" data-i18n="deck_bal">台面餘額 · 紙上</h3>
+          <div class="equity" id="pnlBig">$10,000.00</div>
+          <div class="pnl-line" id="pnlLine">+$0.00 (0.00%) 本場</div>
+        </div>
+        <div class="tf-row" id="tfRow">
+          <button type="button" data-tf="LIVE" class="on">LIVE</button>
+          <button type="button" data-tf="1H">1H</button>
+          <button type="button" data-tf="1D">1D</button>
+          <button type="button" data-tf="1W">1W</button>
+        </div>
+      </div>
+      <div class="pnl-stats" style="display:flex;gap:12px;font-size:8px;color:var(--muted);letter-spacing:0.12em;margin:4px 0 6px">
+        <span><span data-i18n="stat_win">勝率</span> <b id="winRate" style="color:var(--text)">—</b></span>
+        <span><span data-i18n="stat_dd">最大回撤</span> <b id="maxDd" style="color:var(--text)">—</b></span>
+        <span><span data-i18n="stat_fills">成交</span> <b id="nFills" style="color:var(--text)">0</b></span>
+        <span><span data-i18n="stat_spot">現貨</span> <b id="spotSrc" style="color:var(--text)">—</b></span>
+      </div>
+      <canvas class="chart" id="pnlChart"></canvas>
+    </div>
+    <div class="panel">
+      <h3 data-i18n="bots_holding">Bot 持倉狀態</h3>
+      <div class="holding-list" id="holdingList"></div>
+    </div>
+    <div class="panel">
+      <h3 data-i18n="activity">活動流</h3>
+      <div class="activity-list" id="activityList"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind17</span>
+    <span class="warn" id="footWarn">紙上／模擬</span>
+    <span id="footHkt">—</span>
+  </div>
+</div>
+
+<script>
+window.DeskI18n = window.DeskI18n || {
+  lang: (localStorage.getItem('grokDeskLang') === 'en') ? 'en' : 'zh',
+  t: function(k){ return k; }
+};
+</script>
+<script src="/floor.js?v=20261024mind17"></script>
+<script src="/mind.js?v=20261024mind17"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
+const AGENT_COLORS = {
+  EDGE:"#ff4dcf", CLOSER:"#ff8a3d", PRIOR:"#c9a227",
+  TAKER:"#4d8cff", SPOTTER:"#2dd4bf", KELLY:"#a855f7"
+};
+let lastState = null;
+let viewMode = 'grid'; // grid | mind | follow
+let tfMode = 'LIVE';
+let displayEquity = 10000;
+let equityTarget = 10000;
+let mindStarted = false;
+let sidePane = 'signals'; // mobile: signals | cmd
+
+/* ---- i18n ---- */
+const I18N = {
+  zh: {
+    btn_grid:'群體網格', btn_mind:'思維球網',
+    btn_follow:'跟倉觀察',
+    follow_strat:'策略', follow_all:'全部', follow_min_pnl:'最低損益', follow_search:'搜尋',
+    follow_refresh:'刷新蜘蛛', follow_csv_age:'CSV 年齡', follow_refreshing:'刷新中…',
+    follow_live:'準即時·SSE', follow_live_on:'準即時·已連線', follow_live_off:'準即時·未連線', follow_live_wait:'準即時·等待',
+    follow_refreshed:'已觸發刷新', follow_act_err:'公開活動載入失敗', follow_act_empty:'此錢包暫無公開活動',
+    follow_act_loading:'載入公開活動中…', follow_reload_act:'重新載入', follow_back_list:'← 返回列表',
+    follow_dir:'方向', follow_amt:'金額', follow_time:'時間', follow_mkt:'市場',
+    follow_sort:'排序', follow_sort_rank:'名次', follow_sort_pnl_desc:'損益高→低',
+    follow_sort_pnl_asc:'損益低→高', follow_sort_vol_desc:'成交量高→低',
+    follow_hint:'前百錢包 · 僅觀察', follow_loading:'載入中…',
+    follow_pick:'點選左側錢包查看公開活動', follow_empty:'沒有符合條件的錢包',
+    follow_err:'無法載入錢包列表', follow_act:'近期活動', follow_trades:'近期成交',
+    follow_mkts:'常出現市場', follow_notes:'本地備註', follow_notes_hint:'僅存此瀏覽器 · 不上傳 · 不下單',
+    follow_profile:'公開檔案', follow_paper:'紙上觀察 · 無金鑰',
+    col_rank:'#', col_wallet:'錢包', col_pnl:'損益', col_vol:'成交量', col_strat:'策略標籤',
+    'strat_market-making':'做市', 'strat_arbitrage':'套利', 'strat_resolution-sniping':'結算狙擊', 'strat_unknown':'未知',
+    m_account:'帳戶 · 紙上', m_pnl:'群體損益', m_cycle:'週期',
+    clock_sub:'UTC · 下方亦顯示 HKT', paper_tag:'紙上 · 模擬',
+    live_wire:'即時線路', desk_floor:'交易台地板',
+    zoom_hint:'點擊 Bot／工位 → 思維球網',
+    signals_in:'輸入訊號', the_mind:'思維球網', back_grid:'← 網格',
+    mind_cap:'GROK 渾儀 — 赤道是時鐘 — 經線是價格 — 代理在軌道 · 僅紙上模擬',
+    tab_signals:'訊號', tab_cmd:'指令堆疊',
+    cmd_stack:'指令堆疊', handoff_log:'交接紀錄',
+    deck_bal:'台面餘額 · 紙上', bots_holding:'Bot 持倉狀態', activity:'活動流',
+    stat_win:'勝率', stat_dd:'最大回撤', stat_fills:'成交', stat_spot:'現貨',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind17',
+    swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
+    desks_live:(n)=>`${n} 桌線上`,
+    session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
+    foot_demo:'示範資料 · 紙上／模擬', foot_live:'即時行情 · 紙上／模擬',
+    foot_err:'⚠ /api/state 無法連線 — run.py 有開嗎？',
+    cycle:'週期', conf:'信心',
+    g_spot:'現貨相對開盤', g_ttr:'剩餘時間', g_vol:'短線波動', g_mom:'動量',
+    g_imb:'盤口失衡', g_basis:'永續基差',
+    floor_cap:'交易台地板 · 點擊 Bot／工位 → 思維球網 · 僅紙上',
+    card_signal:'訊號', card_spot:'現貨', card_model:'模型', card_market:'市場',
+    bubble_trade:'交易中', bubble_live:'即時', bubble_hold:'已成交 · 持倉',
+    bubble_standby:'待命', bubble_holding:'持倉中',
+    opened:'開倉', sold:'平倉',
+  },
+  en: {
+    btn_grid:'SWARM GRID', btn_mind:'THE MIND',
+    btn_follow:'FOLLOW',
+    follow_strat:'STRATEGY', follow_all:'ALL', follow_min_pnl:'MIN PnL', follow_search:'SEARCH',
+    follow_refresh:'REFRESH SPIDER', follow_csv_age:'CSV AGE', follow_refreshing:'Refreshing…',
+    follow_live:'NEAR-LIVE·SSE', follow_live_on:'NEAR-LIVE·ON', follow_live_off:'NEAR-LIVE·OFF', follow_live_wait:'NEAR-LIVE·WAIT',
+    follow_refreshed:'Refresh started', follow_act_err:'Failed to load public activity', follow_act_empty:'No public activity for this wallet',
+    follow_act_loading:'Loading public activity…', follow_reload_act:'RELOAD', follow_back_list:'← BACK',
+    follow_dir:'SIDE', follow_amt:'SIZE', follow_time:'TIME', follow_mkt:'MARKET',
+    follow_sort:'SORT', follow_sort_rank:'RANK', follow_sort_pnl_desc:'PnL HIGH→LOW',
+    follow_sort_pnl_asc:'PnL LOW→HIGH', follow_sort_vol_desc:'VOL HIGH→LOW',
+    follow_hint:'TOP-100 · OBSERVE ONLY', follow_loading:'Loading…',
+    follow_pick:'Select a wallet to view public activity', follow_empty:'No wallets match filters',
+    follow_err:'Failed to load wallets', follow_act:'RECENT ACTIVITY', follow_trades:'RECENT TRADES',
+    follow_mkts:'TOP MARKETS', follow_notes:'LOCAL NOTES', follow_notes_hint:'This browser only · not uploaded · no orders',
+    follow_profile:'PUBLIC PROFILE', follow_paper:'PAPER WATCH · NO KEYS',
+    col_rank:'#', col_wallet:'WALLET', col_pnl:'PnL', col_vol:'VOLUME', col_strat:'STRATEGY',
+    'strat_market-making':'market-making', 'strat_arbitrage':'arbitrage', 'strat_resolution-sniping':'resolution-sniping', 'strat_unknown':'unknown',
+    m_account:'ACCOUNT · PAPER', m_pnl:'SWARM PnL', m_cycle:'CYCLE',
+    clock_sub:'UTC · ALSO HKT BELOW', paper_tag:'PAPER · SIM',
+    live_wire:'LIVE WIRE', desk_floor:'DESK FLOOR',
+    zoom_hint:'CLICK A BOT / DESK → THE MIND',
+    signals_in:'SIGNALS IN', the_mind:'THE MIND', back_grid:'← GRID',
+    mind_cap:'THE ARMILLARY OF GROK — EQUATOR IS THE CLOCK — MERIDIAN IS THE PRICE — AGENTS IN ORBIT · PAPER ONLY',
+    tab_signals:'SIGNALS', tab_cmd:'COMMANDS',
+    cmd_stack:'COMMAND STACK', handoff_log:'HANDOFF LOG',
+    deck_bal:'DECK BALANCE · PAPER', bots_holding:'BOTS ARE HOLDING', activity:'ACTIVITY',
+    stat_win:'WIN', stat_dd:'MAX DD', stat_fills:'FILLS', stat_spot:'SPOT',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind17',
+    swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
+    desks_live:(n)=>`${n} DESKS LIVE`,
+    session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
+    foot_demo:'DEMO DATA · PAPER / SIMULATION', foot_live:'LIVE FEEDS · PAPER / SIMULATION',
+    foot_err:'⚠ /api/state unreachable — is run.py up?',
+    cycle:'CYCLE', conf:'conf',
+    g_spot:'SPOT VS OPEN', g_ttr:'TIME LEFT', g_vol:'SHORT-TERM VOL', g_mom:'MOMENTUM',
+    g_imb:'BOOK IMBALANCE', g_basis:'PERP BASIS',
+    floor_cap:'DESK FLOOR · CLICK A BOT / DESK → THE MIND · PAPER ONLY',
+    card_signal:'SIGNAL', card_spot:'SPOT', card_model:'MODEL', card_market:'MARKET',
+    bubble_trade:'IN A TRADE', bubble_live:'LIVE', bubble_hold:'FILLED · HOLDING',
+    bubble_standby:'STANDBY', bubble_holding:'HOLDING',
+    opened:'Opened', sold:'Sold',
+  }
+};
+let lang = (localStorage.getItem('grokDeskLang') === 'en') ? 'en' : 'zh';
+function t(key, ...args) {
+  const pack = I18N[lang] || I18N.zh;
+  const v = pack[key];
+  if (typeof v === 'function') return v(...args);
+  return (v != null ? v : (I18N.en[key] != null ? I18N.en[key] : key));
+}
+function applyStaticI18n() {
+  document.documentElement.lang = lang === 'zh' ? 'zh-Hant' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (typeof val === 'string') el.textContent = val;
+  });
+  document.querySelectorAll('#langToggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.lang === lang);
+  });
+  window.DeskI18n = { lang, t };
+  if (lastState) render(lastState);
+  else {
+    if (window.FloorViz && window.FloorViz.setLang) FloorViz.setLang(lang);
+  }
+  if (viewMode === 'follow') { renderFollowTable(); const h=$('followHint'); }
+}
+function setLang(next) {
+  lang = next === 'en' ? 'en' : 'zh';
+  localStorage.setItem('grokDeskLang', lang);
+  applyStaticI18n();
+}
+function setSidePane(pane) {
+  sidePane = pane === 'cmd' ? 'cmd' : 'signals';
+  const root = $('deskRoot');
+  root.classList.toggle('side-signals', sidePane === 'signals');
+  root.classList.toggle('side-cmd', sidePane === 'cmd');
+  document.querySelectorAll('#mobileSideTabs button').forEach(b => {
+    b.classList.toggle('on', b.dataset.side === sidePane);
+  });
+}
+
+function fmtMoney(n, dig=2) {
+  const v = Number(n)||0;
+  const s = Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:dig,maximumFractionDigits:dig});
+  return (v<0?'-':'') + '$' + s;
+}
+function fmtUTC(ts) {
+  const d = ts ? new Date(ts*1000) : new Date();
+  return d.toISOString().substr(11,8);
+}
+function fmtHKT(ts) {
+  try {
+    return new Date((ts||Date.now()/1000)*1000).toLocaleString('zh-HK',{
+      timeZone:'Asia/Hong_Kong', hour12:false
+    }) + ' HKT';
+  } catch { return '—'; }
+}
+function fmtTTR(s) {
+  s = Math.max(0, Math.floor(Number(s)||0));
+  const m = Math.floor(s/60), r = s%60;
+  return m + ':' + String(r).padStart(2,'0');
+}
+function setView(mode) {
+  if (mode === 'mind') viewMode = 'mind';
+  else if (mode === 'follow') viewMode = 'follow';
+  else viewMode = 'grid';
+  const root = $('deskRoot');
+  root.classList.toggle('view-grid', viewMode === 'grid');
+  root.classList.toggle('view-mind', viewMode === 'mind');
+  root.classList.toggle('view-follow', viewMode === 'follow');
+  document.querySelectorAll('#viewToggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.view === viewMode);
+  });
+  if (viewMode === 'mind') {
+    ensureMind();
+    requestAnimationFrame(() => {
+      if (lastState && window.MindViz) MindViz.setState(lastState);
+      window.dispatchEvent(new Event('resize'));
+    });
+  } else if (viewMode === 'follow') {
+    loadFollowList();
+    ensureFollowSSE();
+    postWatch({ interval: followLiveInterval });
+  } else {
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+}
+function ensureMind() {
+  if (!mindStarted && window.MindViz) {
+    MindViz.start($('armillary'));
+    mindStarted = true;
+  }
+}
+
+/* ---- Agent bar ---- */
+function renderAgents(agents) {
+  const bar = $('agentBar');
+  bar.innerHTML = AGENT_ORDER.map(id => {
+    const a = (agents&&agents[id]) || {status:'QUEUED', detail:'', color:AGENT_COLORS[id]};
+    const st = a.status || 'QUEUED';
+    const detail = (a.detail||st).toUpperCase();
+    const col = a.color || AGENT_COLORS[id];
+    return `<div class="agent ${st}" style="color:${col}" data-agent="${id}">
+      <div class="orb">${id[0]}</div>
+      <div class="meta"><span class="name">${id}</span><span class="st">${st}${a.detail?' · '+detail:''}</span></div>
+    </div>`;
+  }).join('');
+  bar.querySelectorAll('.agent').forEach(el => {
+    el.onclick = () => setView('mind');
+  });
+}
+
+/* ---- Swarm floor cards ---- */
+function sparkline(canvas, vals, col) {
+  if (!canvas) return;
+  const dpr = Math.min(devicePixelRatio||1, 2);
+  const w = canvas.clientWidth || 120, h = canvas.clientHeight || 28;
+  canvas.width = Math.max(40, w * dpr); canvas.height = Math.max(20, h * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (!vals || vals.length < 2) return;
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const span = Math.max(1e-6, max - min);
+  ctx.beginPath();
+  vals.forEach((v,i) => {
+    const x = i / (vals.length - 1) * canvas.width;
+    const y = canvas.height - ((v - min) / span) * (canvas.height - 4) - 2;
+    i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+  });
+  ctx.strokeStyle = col; ctx.lineWidth = 1.4 * dpr; ctx.stroke();
+}
+
+function renderFloor(s) {
+  const agents = s.agents || {};
+  let live = 0;
+  AGENT_ORDER.forEach(id => {
+    const st = (agents[id] && agents[id].status) || 'QUEUED';
+    if (st === 'RUNNING' || st === 'DONE') live++;
+  });
+  $('floorLiveN').textContent = t('desks_live', Math.max(live, 1));
+  if (window.FloorViz) FloorViz.setState(s);
+}
+
+/* ---- Gauges ---- */
+function gaugeDefs() {
+  return [
+  { key:'spot_vs_open', label:t('g_spot'), color:'#4de0ff', fmt:v => v==null?'N/A':(v>0?'+':'')+Number(v).toFixed(0), norm:v => v==null?0.5: Math.max(0,Math.min(1,(Number(v)+50)/100)) },
+  { key:'ttr', label:t('g_ttr'), color:'#4d8cff', fmt:v => fmtTTR(v), norm:v => Math.max(0,Math.min(1, Number(v)/300)) },
+  { key:'vol', label:t('g_vol'), color:'#a855f7', fmt:v => v==null?'N/A':Number(v).toFixed(4), norm:v => Math.max(0,Math.min(1, Number(v||0)/0.01)) },
+  { key:'mom', label:t('g_mom'), color:'#ff4dcf', fmt:v => Number(v||0).toFixed(3), norm:v => Math.max(0,Math.min(1,(Number(v)+1)/2)) },
+  { key:'imbalance', label:t('g_imb'), color:'#2dd4bf', fmt:(v,s) => v==null?'N/A': (Math.round(((Number(v)+1)/2)*100)+'%') + (s&&s.imbalance_source==='flow_proxy'?' ·FLOW':''), norm:v => v==null?0.5: (Number(v)+1)/2 },
+  { key:'basis', label:t('g_basis'), color:'#a855f7', fmt:v => v==null?'N/A':Number(v).toFixed(2), norm:v => v==null?0.5: Math.max(0,Math.min(1,(Number(v)+5)/10)) },
+];
+}
+
+function renderGauges(sig) {
+  const vals = {
+    spot_vs_open: sig.spot_vs_open,
+    ttr: sig.seconds_to_resolution,
+    vol: sig.vol,
+    mom: sig.mom,
+    imbalance: sig.book_imbalance,
+    basis: sig.perp_basis,
+  };
+  $('gauges').innerHTML = gaugeDefs().map(g => {
+    const raw = vals[g.key];
+    const n = g.norm(raw);
+    const label = g.fmt(raw, sig);
+    return `<div class="gauge" style="color:${g.color}">
+      <div class="row"><span class="lbl">${g.label}</span><span class="val">${label}</span></div>
+      <div class="bar"><i style="width:${(n*100).toFixed(1)}%;background:${g.color}"></i>
+        <span class="tail" style="left:calc(${(n*100).toFixed(1)}% - 3px);color:${g.color}"></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function resizeCanvas(c) {
+  const r = c.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  c.width = Math.max(100, Math.floor(r.width*dpr));
+  c.height = Math.max(100, Math.floor(r.height*dpr));
+  return dpr;
+}
+
+function filterCurve(curve, tf) {
+  if (!curve || !curve.length) return [];
+  const now = curve[curve.length-1].ts || (Date.now()/1000);
+  let win = Infinity;
+  if (tf === '1H') win = 3600;
+  else if (tf === '1D') win = 86400;
+  else if (tf === '1W') win = 86400 * 7;
+  else win = 900; // LIVE ~15m focus
+  return curve.filter(p => (now - (p.ts||now)) <= win);
+}
+
+function drawPnl(curve) {
+  const c = $('pnlChart'); if (!c) return;
+  resizeCanvas(c);
+  const ctx = c.getContext('2d');
+  const w=c.width, h=c.height;
+  ctx.clearRect(0,0,w,h);
+  const filtered = filterCurve(curve, tfMode);
+  if (!filtered || filtered.length<2) return;
+  const ys = filtered.map(p=>Number(p.equity));
+  let min=Math.min(...ys), max=Math.max(...ys);
+  if (max-min < 1) { min-=1; max+=1; }
+  // glow
+  ctx.beginPath();
+  filtered.forEach((p,i)=>{
+    const x = i/(filtered.length-1)*w;
+    const y = h - ((p.equity-min)/(max-min))*(h-6) - 3;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.strokeStyle = 'rgba(57,255,135,0.25)'; ctx.lineWidth=6; ctx.stroke();
+  ctx.beginPath();
+  filtered.forEach((p,i)=>{
+    const x = i/(filtered.length-1)*w;
+    const y = h - ((p.equity-min)/(max-min))*(h-6) - 3;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.strokeStyle = '#39ff87'; ctx.lineWidth=2; ctx.stroke();
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  const g = ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'rgba(57,255,135,0.22)'); g.addColorStop(1,'rgba(57,255,135,0)');
+  ctx.fillStyle=g; ctx.fill();
+}
+
+function renderHolding(s) {
+  const agents = s.agents || {};
+  const pf = s.portfolio || {};
+  const pos = pf.position;
+  const eq = Number(pf.equity || pf.starting || 10000);
+  const start = Number(pf.starting || 10000);
+  const pnl = eq - start;
+  const list = AGENT_ORDER.map(id => {
+    const a = agents[id] || {};
+    const col = a.color || AGENT_COLORS[id];
+    const st = a.status || 'QUEUED';
+    let tag = a.detail || st;
+    let val = eq / AGENT_ORDER.length;
+    let roi = (pnl / start) * 100;
+    if (pos && st === 'RUNNING') {
+      tag = `in ${pos.side} @ ${Number(pos.entry||0).toFixed(3)}`;
+      val = Number(pos.cost || 0) + Number(pf.unrealized || 0);
+      roi = pos.cost ? ((Number(pf.unrealized||0) / pos.cost) * 100) : roi;
+    } else if (st === 'DONE') {
+      tag = a.detail || 'holding';
+    }
+    return { id, col, tag, val, roi, st };
+  });
+  $('holdingList').innerHTML = list.map(r => `
+    <div class="holding-row" style="color:${r.col}">
+      <div class="av">${r.id[0]}</div>
+      <div class="meta">
+        <div class="nm">${r.id}</div>
+        <div class="sub">${r.st} · ${String(r.tag).slice(0,32)}</div>
+      </div>
+      <div class="val">
+        <b>${fmtMoney(r.val)}</b>
+        <em class="${r.roi<0?'neg':''}">${r.roi>=0?'+':''}${r.roi.toFixed(2)}%</em>
+      </div>
+    </div>`).join('');
+}
+
+function renderActivity(s) {
+  const rows = [];
+  (s.trace_tail || []).slice().reverse().slice(0, 18).forEach(r => {
+    rows.push({
+      ts: r.ts, agent: r.agent, msg: r.msg,
+      col: AGENT_COLORS[r.agent] || '#7CFFB2',
+      ico: (r.agent || '?')[0]
+    });
+  });
+  (s.portfolio && s.portfolio.recent_trades || []).slice().reverse().slice(0, 6).forEach(tr => {
+    const pnl = tr.pnl != null ? tr.pnl : null;
+    const msg = tr.type === 'CLOSE'
+      ? `${t('sold')} ${tr.side} ${pnl!=null?((pnl>=0?'+':'')+fmtMoney(pnl)) : ''}`
+      : `${t('opened')} ${tr.side} @ ${Number(tr.price||0).toFixed(3)}`;
+    rows.push({
+      ts: tr.ts, agent: 'TAKER', msg,
+      col: pnl != null ? (pnl >= 0 ? '#39ff87' : '#ff8a3d') : '#4d8cff',
+      ico: tr.type === 'CLOSE' ? '$' : '+'
+    });
+  });
+  rows.sort((a,b) => (b.ts||0)-(a.ts||0));
+  $('activityList').innerHTML = rows.slice(0, 14).map(r => `
+    <div class="act" style="color:${r.col}">
+      <div class="ico">${r.ico}</div>
+      <div class="body">
+        <div class="msg"><span class="ag" style="color:${r.col}">${r.agent||''}</span>${r.msg}</div>
+        <div class="when">${fmtUTC(r.ts)} UTC</div>
+      </div>
+    </div>`).join('') || `<div class="act"><div class="body"><div class="msg">${t('awaiting_act')}</div></div></div>`;
+}
+
+function tickEquityAnim() {
+  const diff = equityTarget - displayEquity;
+  if (Math.abs(diff) < 0.005) { displayEquity = equityTarget; }
+  else { displayEquity += diff * 0.18; }
+  const el = $('pnlBig');
+  if (el) el.textContent = fmtMoney(displayEquity, 2);
+  requestAnimationFrame(tickEquityAnim);
+}
+
+function render(s) {
+  lastState = s;
+  const demo = !!(s.demo || (s.market&&s.market.demo) || (s.spot&&s.spot.demo));
+  const pf = s.portfolio || {};
+  const sig = s.signal || {};
+  const m = s.market || {};
+
+  equityTarget = Number(pf.equity != null ? pf.equity : 10000);
+  $('acctVal').textContent = fmtMoney(equityTarget, 0);
+  const pnl = Number(pf.pnl_total||0);
+  const start = Number(pf.starting || 10000);
+  const pct = start ? (pnl / start) * 100 : 0;
+  $('swarmPnl').textContent = fmtMoney(pnl);
+  $('swarmPnl').className = pnl>=0?'':'neg';
+  const pl = $('pnlLine');
+  pl.textContent = `${pnl>=0?'+':''}${fmtMoney(pnl)} (${pct>=0?'+':''}${pct.toFixed(2)}%) ${t('session')}`;
+  pl.className = 'pnl-line' + (pnl < 0 ? ' neg' : '');
+  $('cycleN').textContent = s.cycle||0;
+  $('winRate').textContent = (pf.win_rate!=null?pf.win_rate+'%':'—');
+  $('maxDd').textContent = (pf.max_dd_pct!=null?pf.max_dd_pct+'%':'—');
+  $('nFills').textContent = pf.n_trades||0;
+  $('spotSrc').textContent = (s.spot && s.spot.source) ? String(s.spot.source).toUpperCase() : '—';
+
+  $('clock').innerHTML = fmtUTC(s.ts) + '<small>UTC · ' + fmtHKT(s.ts) + '</small>';
+  $('swarmLabel').textContent = s.agents_alive ? (demo?t('swarm_demo'):t('swarm_online')) : t('swarm_idle');
+  $('footWarn').textContent = demo ? t('foot_demo') : t('foot_live');
+  $('footHkt').textContent = fmtHKT(s.ts);
+
+  renderAgents(s.agents);
+  renderFloor(s);
+  renderHolding(s);
+  renderActivity(s);
+  if (viewMode === 'mind') renderGauges(sig);
+
+  const action = sig.action||'HOLD';
+  $('action').textContent = action;
+  $('action').style.color = action==='BUY_UP'?'var(--lime)':action==='BUY_DOWN'?'var(--red)':'var(--pink)';
+  $('actionSub').textContent = `${t('cycle')} ${s.cycle||0} · ${t('conf')} ${((sig.confidence||0)*100).toFixed(0)}% · λ ${Number(sig.intensity_n||0).toFixed(2)} · MODEL ${sig.model_up_cents!=null?Number(sig.model_up_cents).toFixed(1)+'¢':'—'}`;
+  $('mindMeta').textContent = (m.slug||'—').slice(0,32);
+
+  let who = 'EDGE';
+  const agents = s.agents||{};
+  for (const id of ['EDGE','TAKER','CLOSER','PRIOR','SPOTTER','KELLY']) {
+    if (agents[id] && agents[id].status==='RUNNING') { who=id; break; }
+  }
+  $('cmdWho').textContent = who;
+  $('cmdWho').style.color = AGENT_COLORS[who]||'var(--pink)';
+  const title = (m.title||'BTC UP/DOWN 5M').replace(/^Bitcoin /,'');
+  $('cmdTicket').textContent = `${action} · ${title}`.slice(0,48);
+  $('cmdMeta').textContent = `UP ${Number(m.up_price||0).toFixed(3)} / DN ${Number(m.down_price||0).toFixed(3)} · TTR ${fmtTTR(sig.seconds_to_resolution)} · PAPER`;
+
+  const stack = (s.command_stack||[]).slice(0,8).map(r =>
+    `<div class="row"><span class="tm">${fmtUTC(r.ts)}</span><span class="ag" style="color:${AGENT_COLORS[r.agent]||'#fff'}">${r.agent}</span>${r.msg}</div>`
+  ).join('');
+  $('stackList').innerHTML = stack || `<div class="row">${t('awaiting')}…</div>`;
+
+  const hof = (s.handoffs||[]).slice(0,6).map(h =>
+    `<div class="row"><span class="tm">${fmtUTC(h.ts)}</span>${h.from} → ${h.to}${h.note?' · '+h.note:''}</div>`
+  ).join('');
+  $('handoffList').innerHTML = hof || '<div class="row">—</div>';
+
+  const wire = (s.live_wire||[]).join('   ✦   ') || t('awaiting_swarm');
+  $('wireText').textContent = wire + '   ✦   ' + wire;
+
+  if (window.MindViz && mindStarted) MindViz.setState(s);
+  drawPnl(pf.equity_curve||[]);
+}
+
+async function tick() {
+  try {
+    const r = await fetch('/api/state?_=' + Date.now());
+    const s = await r.json();
+    render(s);
+  } catch (e) {
+    $('footWarn').textContent = t('foot_err');
+  }
+}
+
+$('viewToggle').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-view]');
+  if (b) setView(b.dataset.view);
+});
+$('backGrid').addEventListener('click', () => setView('grid'));
+$('tfRow').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-tf]');
+  if (!b) return;
+  tfMode = b.dataset.tf;
+  $('tfRow').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  if (lastState) drawPnl((lastState.portfolio||{}).equity_curve||[]);
+});
+
+$('langToggle').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+$('mobileSideTabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-side]');
+  if (b) setSidePane(b.dataset.side);
+});
+setSidePane('signals');
+
+renderAgents({});
+renderFloor({ agents:{}, portfolio:{ equity_curve:[] } });
+if (window.FloorViz) {
+  FloorViz.start($('floorCanvas'));
+  FloorViz.onSelect(() => setView('mind'));
+}
+
+/* ---- FOLLOW / 跟倉觀察 (paper) ---- */
+let followWallets = [];
+let followSelected = null;
+let followLoading = false;
+const NOTES_KEY = 'grokDeskFollowNotes';
+
+function stratClass(s) {
+  s = (s||'').toLowerCase();
+  if (s === 'market-making') return 'mm';
+  if (s === 'arbitrage') return 'arb';
+  if (s === 'resolution-sniping') return 'snip';
+  return 'unk';
+}
+function stratLabel(s) {
+  const k = 'strat_' + (s || 'unknown');
+  const v = t(k);
+  return v === k ? (s || 'unknown') : v;
+}
+function shortAddr(a) {
+  a = String(a||'');
+  return a.length > 12 ? a.slice(0,6)+'…'+a.slice(-4) : a;
+}
+function fmtCompact(n) {
+  n = Number(n)||0;
+  const sign = n < 0 ? '-' : '';
+  const a = Math.abs(n);
+  if (a >= 1e9) return sign + '$' + (a/1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return sign + '$' + (a/1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return sign + '$' + (a/1e3).toFixed(1) + 'K';
+  return sign + '$' + a.toFixed(0);
+}
+function loadNotes() {
+  try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '{}') || {}; }
+  catch { return {}; }
+}
+function saveNote(addr, text) {
+  const all = loadNotes();
+  if (!text) delete all[addr]; else all[addr] = text;
+  localStorage.setItem(NOTES_KEY, JSON.stringify(all));
+}
+
+async function loadFollowList() {
+  if (followLoading) return;
+  followLoading = true;
+  const tb = $('followTbody');
+  if (tb) tb.innerHTML = `<tr><td colspan="5" class="follow-empty">${t('follow_loading')}</td></tr>`;
+  const strat = ($('followStrat') && $('followStrat').value) || 'all';
+  const minP = ($('followMinPnl') && $('followMinPnl').value) || '';
+  const q = ($('followQ') && $('followQ').value) || '';
+  const params = new URLSearchParams();
+  if (strat && strat !== 'all') params.set('strategy', strat);
+  if (minP) params.set('min_pnl', minP);
+  if (q) params.set('q', q);
+  params.set('limit', '100');
+  try {
+    const r = await fetch('/api/wallets?' + params.toString() + '&_=' + Date.now());
+    const data = await r.json();
+    followWallets = data.wallets || [];
+    const sel = $('followStrat');
+    if (sel && data.strategies) {
+      const cur = sel.value || 'all';
+      const opts = ['<option value="all">' + t('follow_all') + '</option>']
+        .concat(data.strategies.map(s => `<option value="${s}">${stratLabel(s)}</option>`));
+      sel.innerHTML = opts.join('');
+      sel.value = cur;
+      if (![...sel.options].some(o => o.value === cur)) sel.value = 'all';
+    }
+    const age = data.csv_age_hours != null ? data.csv_age_hours + 'h' : '—';
+    followCsvMeta.age_hours = data.csv_age_hours;
+    followCsvMeta.refreshing = !!(data.refresh && data.refresh.refreshing);
+    setFollowCsvAge(followCsvMeta.age_hours, followCsvMeta.refreshing);
+    $('followCount').textContent = `${followWallets.length}/${data.total_in_csv||0}`;
+    renderFollowTable();
+    if (followSelected) {
+      const still = followWallets.find(w => w.address === followSelected);
+      if (still) selectFollowWallet(still.address, true);
+    }
+  } catch (e) {
+    if (tb) tb.innerHTML = `<tr><td colspan="5" class="follow-empty">${t('follow_err')}</td></tr>`;
+  } finally {
+    followLoading = false;
+  }
+}
+
+function sortedFollowWallets() {
+  const mode = ($('followSort') && $('followSort').value) || 'rank';
+  const arr = followWallets.slice();
+  if (mode === 'pnl_desc') arr.sort((a,b) => (Number(b.pnl_usdc)||0) - (Number(a.pnl_usdc)||0));
+  else if (mode === 'pnl_asc') arr.sort((a,b) => (Number(a.pnl_usdc)||0) - (Number(b.pnl_usdc)||0));
+  else if (mode === 'vol_desc') arr.sort((a,b) => (Number(b.volume_usdc)||0) - (Number(a.volume_usdc)||0));
+  else arr.sort((a,b) => (Number(a.rank)||9999) - (Number(b.rank)||9999));
+  return arr;
+}
+function renderFollowTable() {
+  const tb = $('followTbody');
+  if (!tb) return;
+  if (!followWallets.length) {
+    tb.innerHTML = `<tr><td colspan="5" class="follow-empty">${t('follow_empty')}</td></tr>`;
+    return;
+  }
+  tb.innerHTML = sortedFollowWallets().map(w => {
+    const pnl = Number(w.pnl_usdc)||0;
+    const on = followSelected === w.address ? 'on' : '';
+    const name = w.username || shortAddr(w.address);
+    return `<tr class="${on}" data-addr="${w.address}">
+      <td>${w.rank||''}</td>
+      <td><div>${name}</div><div class="addr-short">${shortAddr(w.address)}</div></td>
+      <td class="${pnl>=0?'pnl-pos':'pnl-neg'}">${fmtCompact(pnl)}</td>
+      <td>${fmtCompact(w.volume_usdc)}</td>
+      <td><span class="tag-strat ${stratClass(w.suspected_strategy)}">${stratLabel(w.suspected_strategy)}</span></td>
+    </tr>`;
+  }).join('');
+  tb.querySelectorAll('tr[data-addr]').forEach(tr => {
+    tr.onclick = () => selectFollowWallet(tr.dataset.addr, true);
+  });
+}
+
+let followAbort = null;
+let followCsvMeta = { age_hours: null, refreshing: false };
+
+function setFollowCsvAge(age, refreshing) {
+  const el = $('followCsvAge');
+  if (!el) return;
+  const b = el.querySelector('b');
+  let txt = '—';
+  if (age != null && age !== '') {
+    const a = Number(age);
+    if (a < 1) txt = Math.round(a * 60) + 'm';
+    else txt = a.toFixed(2) + 'h';
+  }
+  if (refreshing) txt += ' · …';
+  if (b) b.textContent = txt;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function activityRowHtml(it) {
+  let side = (it.side || '').toUpperCase();
+  const typ = (it.type || '').toUpperCase();
+  if (!side) side = typ || 'OTHER';
+  const sideCls = (side === 'BUY' || side === 'SELL') ? side : 'OTHER';
+  const when = it.timestamp ? fmtHKT(it.timestamp) : '—';
+  const px = (it.price != null && Number(it.price) > 0) ? Number(it.price).toFixed(3) : '—';
+  const usdc = (it.usdc_size != null && Number(it.usdc_size) !== 0)
+    ? fmtCompact(it.usdc_size)
+    : (it.size != null ? fmtCompact(it.size) : '—');
+  const outcome = it.outcome ? escapeHtml(it.outcome) : '—';
+  const title = escapeHtml(it.title || '—');
+  return `<div class="act-row">
+    <div class="side ${sideCls}">${escapeHtml(side).slice(0,7)}</div>
+    <div class="body">
+      <div class="title">${title}</div>
+      <div class="sub"><span class="dir">${t('follow_dir')} ${outcome}</span> · ${px} · ${t('follow_amt')} ${usdc} · ${t('follow_time')} ${when}</div>
+    </div>
+  </div>`;
+}
+
+function closeFollowDetail() {
+  followSelected = null;
+  const panel = $('followPanel');
+  if (panel) panel.classList.remove('detail-open');
+  renderFollowTable();
+  const detail = $('followDetail');
+  if (detail) detail.innerHTML = `<div class="follow-empty">${t('follow_pick')}</div>`;
+}
+
+async function selectFollowWallet(addr, fetchDetail) {
+  followSelected = addr;
+  const panel = $('followPanel');
+  if (panel) panel.classList.add('detail-open');
+  renderFollowTable();
+  const w = followWallets.find(x => x.address === addr) || { address: addr };
+  const detail = $('followDetail');
+  if (!detail) return;
+  const name = escapeHtml(w.username || shortAddr(addr));
+  const pnl = Number(w.pnl_usdc)||0;
+  const notes = loadNotes();
+  const noteVal = notes[addr] || '';
+  const profileUrl = 'https://polymarket.com/profile/' + addr;
+
+  // Shell first (header + notes + loading) so UI feels instant
+  detail.innerHTML = `
+    <button type="button" class="fd-back" id="followBack">${t('follow_back_list')}</button>
+    <div class="fd-head">
+      <div>
+        <div class="fd-name">${name}</div>
+        <div class="fd-meta">${escapeHtml(shortAddr(addr))} · <span class="${pnl>=0?'pnl-pos':'pnl-neg'}">${fmtCompact(pnl)}</span>
+          · <span class="tag-strat ${stratClass(w.suspected_strategy)}">${escapeHtml(stratLabel(w.suspected_strategy))}</span>
+          · ${t('follow_paper')}</div>
+        <div class="fd-meta">${escapeHtml(w.strategy_reason||'')}</div>
+      </div>
+      <a class="fd-link" href="${profileUrl}" target="_blank" rel="noopener">Polymarket ↗</a>
+    </div>
+    <h4>${t('follow_notes')}</h4>
+    <textarea id="followNote" placeholder="…"></textarea>
+    <div class="note-hint">${t('follow_notes_hint')}</div>
+    <h4>${t('follow_act')} <button type="button" class="btn-reload-act" id="followReloadAct">${t('follow_reload_act')}</button></h4>
+    <div id="followActBox"><div class="fd-status loading">${t('follow_act_loading')}</div></div>
+    <h4>${t('follow_trades')}</h4>
+    <div id="followTradeBox"><div class="fd-status loading">${t('follow_act_loading')}</div></div>
+    <h4>${t('follow_mkts')}</h4>
+    <div id="followMktBox"><div class="fd-status loading">…</div></div>
+  `;
+  const ta = $('followNote');
+  if (ta) {
+    ta.value = noteVal;
+    let tmr = null;
+    ta.addEventListener('input', () => {
+      clearTimeout(tmr);
+      tmr = setTimeout(() => saveNote(addr, ta.value), 300);
+    });
+  }
+  const back = $('followBack');
+  if (back) back.onclick = () => closeFollowDetail();
+  const reloadBtn = $('followReloadAct');
+  if (reloadBtn) reloadBtn.onclick = () => selectFollowWallet(addr, true);
+
+  if (fetchDetail === false) {
+    // still fetch; flag only skipped for rare cases — always load public data
+  }
+
+  if (followAbort) { try { followAbort.abort(); } catch(_){} }
+  followAbort = new AbortController();
+  const signal = followAbort.signal;
+  let recent = null;
+  try {
+    const r = await fetch('/api/wallets/' + encodeURIComponent(addr) + '/recent?limit=40&nocache=1&_=' + Date.now(), { signal });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    recent = await r.json();
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    recent = { error: String(e && e.message || e) };
+  }
+  if (followSelected !== addr) return; // raced
+
+  addToWatchList(addr);
+  postWatch({ focus: addr, interval: followLiveInterval });
+  ensureFollowSSE();
+  let maxTs = Number(followNewestTs[addr]||0);
+  const _seed = (recent && (recent.activity||[])).concat((recent && recent.trades)||[]);
+  _seed.forEach(it => { maxTs = Math.max(maxTs, Number(it.timestamp||0)); });
+  if (maxTs) followNewestTs[addr] = maxTs;
+
+  const actBox = $('followActBox');
+  const tradeBox = $('followTradeBox');
+  const mktBox = $('followMktBox');
+  const err = recent && recent.error;
+  const acts = (recent && recent.activity) || [];
+  const trades = (recent && recent.trades) || [];
+  const mkts = (recent && recent.markets) || [];
+
+  if (actBox) {
+    if (err && !acts.length) {
+      actBox.innerHTML = `<div class="fd-status error">${t('follow_act_err')}: ${escapeHtml(err)}</div>`;
+    } else if (!acts.length) {
+      actBox.innerHTML = `<div class="fd-status empty">${t('follow_act_empty')}</div>`;
+    } else {
+      actBox.innerHTML = acts.slice(0, 24).map(activityRowHtml).join('');
+    }
+  }
+  if (tradeBox) {
+    if (err && !trades.length) {
+      tradeBox.innerHTML = `<div class="fd-status error">${t('follow_act_err')}</div>`;
+    } else if (!trades.length) {
+      tradeBox.innerHTML = `<div class="fd-status empty">${t('follow_act_empty')}</div>`;
+    } else {
+      tradeBox.innerHTML = trades.slice(0, 20).map(activityRowHtml).join('');
+    }
+  }
+  if (mktBox) {
+    mktBox.innerHTML = mkts.length
+      ? mkts.slice(0, 12).map(m => `<span class="mkt-chip">${escapeHtml(m.title)} · ${m.hits}</span>`).join('')
+      : `<div class="fd-status empty">—</div>`;
+  }
+  // mobile: scroll detail into view
+  try { detail.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_){}
+}
+
+async function refreshSpider() {
+  const btn = $('followRefreshBtn');
+  if (btn) { btn.disabled = true; btn.textContent = t('follow_refreshing'); }
+  setFollowCsvAge(followCsvMeta.age_hours, true);
+  try {
+    const r = await fetch('/api/wallets/refresh?_=' + Date.now());
+    const data = await r.json();
+    followCsvMeta.age_hours = data.csv_age_hours;
+    followCsvMeta.refreshing = !!(data.refresh && data.refresh.refreshing);
+    setFollowCsvAge(followCsvMeta.age_hours, followCsvMeta.refreshing);
+    // poll a few times then reload list
+    let n = 0;
+    const poll = async () => {
+      n++;
+      await loadFollowList();
+      if (followCsvMeta.refreshing && n < 8) {
+        setTimeout(poll, 2500);
+      } else if (btn) {
+        btn.disabled = false;
+        btn.textContent = t('follow_refresh');
+      }
+    };
+    setTimeout(poll, 1500);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = t('follow_refresh'); }
+    setFollowCsvAge(followCsvMeta.age_hours, false);
+  }
+}
+
+
+/* ---- near-realtime SSE watch (paper) ---- */
+const WATCH_KEY = 'grokDeskWatchList';
+let followLiveInterval = Number(localStorage.getItem('grokDeskWatchInterval') || 15) || 15;
+let followNewestTs = {};
+let followSSE = null;
+let followSSERetry = null;
+
+function loadWatchList() {
+  try { return JSON.parse(localStorage.getItem(WATCH_KEY) || '[]') || []; }
+  catch { return []; }
+}
+function saveWatchList(arr) {
+  localStorage.setItem(WATCH_KEY, JSON.stringify(arr.slice(0, 40)));
+}
+function addToWatchList(addr) {
+  const a = String(addr||'').toLowerCase();
+  if (!a.startsWith('0x')) return;
+  const cur = loadWatchList().filter(x => x !== a);
+  cur.unshift(a);
+  saveWatchList(cur);
+}
+
+function setLivePill(state) {
+  const el = $('followLivePill');
+  if (!el) return;
+  el.classList.remove('on','off','warn');
+  el.classList.add(state === 'on' ? 'on' : (state === 'warn' ? 'warn' : 'off'));
+  const lab = el.querySelector('span:last-child');
+  if (lab) {
+    lab.textContent = state === 'on' ? t('follow_live_on') : (state === 'warn' ? t('follow_live_wait') : t('follow_live_off'));
+  }
+}
+
+async function postWatch(extra) {
+  const watched = loadWatchList();
+  if (followSelected) {
+    addToWatchList(followSelected);
+    if (!watched.includes(followSelected)) watched.unshift(followSelected);
+  }
+  const body = {
+    addresses: watched.slice(0, 20),
+    focus: followSelected || null,
+    interval: followLiveInterval,
+    replace: false,
+    ...(extra || {}),
+  };
+  try {
+    await fetch('/api/wallets/watch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (_) {}
+}
+
+function ensureFollowSSE() {
+  if (window.__DESK_SSE_OFF) { setLivePill('off'); return; }
+  if (followSSE && followSSE.readyState !== 2) return;
+  try { if (followSSE) followSSE.close(); } catch(_){}
+  setLivePill('warn');
+  followSSE = new EventSource('/api/wallets/stream');
+  followSSE.addEventListener('hello', () => setLivePill('on'));
+  followSSE.addEventListener('activity', (ev) => {
+    setLivePill('on');
+    try {
+      const msg = JSON.parse(ev.data);
+      if (!msg || !msg.address) return;
+      onFollowLiveEvent(msg);
+    } catch (_) {}
+  });
+  followSSE.onopen = () => setLivePill('on');
+  followSSE.onerror = () => {
+    setLivePill('off');
+    try { followSSE.close(); } catch(_){}
+    followSSE = null;
+    clearTimeout(followSSERetry);
+    followSSERetry = setTimeout(ensureFollowSSE, 4000);
+  };
+}
+
+async function onFollowLiveEvent(msg) {
+  const addr = String(msg.address||'').toLowerCase();
+  const newest = Number(msg.newest_ts||0);
+  const prev = Number(followNewestTs[addr]||0);
+  if (newest) followNewestTs[addr] = Math.max(prev, newest);
+  if (followSelected !== addr) return;
+  const since = prev > 0 ? prev : Math.max(0, newest - 1);
+  try {
+    const r = await fetch('/api/wallets/' + encodeURIComponent(addr) + '/recent?since=' + since + '&limit=40&_=' + Date.now());
+    const data = await r.json();
+    prependFollowActivity(data);
+    if (newest) followNewestTs[addr] = Math.max(followNewestTs[addr]||0, newest);
+  } catch (_) {}
+}
+
+function prependFollowActivity(data) {
+  const acts = data.activity || [];
+  const trades = data.trades || [];
+  const actBox = $('followActBox');
+  const tradeBox = $('followTradeBox');
+  function prepend(box, items) {
+    if (!box || !items.length) return;
+    // remove empty/error placeholders
+    if (box.querySelector('.fd-status')) box.innerHTML = '';
+    const html = items.map(it => {
+      const row = activityRowHtml(it);
+      return row.replace('class="act-row"', 'class="act-row act-new"');
+    }).join('');
+    box.insertAdjacentHTML('afterbegin', html);
+    // cap DOM
+    while (box.children.length > 40) box.removeChild(box.lastChild);
+    // clear highlight later
+    setTimeout(() => {
+      box.querySelectorAll('.act-new').forEach(el => el.classList.remove('act-new'));
+    }, 3200);
+  }
+  prepend(actBox, acts);
+  prepend(tradeBox, trades);
+}
+
+function syncIntervalButtons() {
+  const root = $('followInterval');
+  if (!root) return;
+  root.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('on', Number(b.dataset.iv) === Number(followLiveInterval));
+  });
+}
+
+
+(function wireFollow() {
+  const strat = $('followStrat');
+  const minP = $('followMinPnl');
+  const q = $('followQ');
+  let qtmr = null;
+  if (strat) strat.addEventListener('change', () => loadFollowList());
+  if (minP) minP.addEventListener('change', () => loadFollowList());
+  const sortEl = $('followSort');
+  if (sortEl) sortEl.addEventListener('change', () => renderFollowTable());
+  if (q) q.addEventListener('input', () => {
+    clearTimeout(qtmr);
+    qtmr = setTimeout(() => loadFollowList(), 280);
+  });
+  const rb = $('followRefreshBtn');
+  if (rb) rb.addEventListener('click', () => refreshSpider());
+  const iv = $('followInterval');
+  if (iv) iv.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-iv]');
+    if (!b) return;
+    followLiveInterval = Number(b.dataset.iv) || 15;
+    localStorage.setItem('grokDeskWatchInterval', String(followLiveInterval));
+    syncIntervalButtons();
+    postWatch({ interval: followLiveInterval });
+  });
+  syncIntervalButtons();
+})();
+
+
+
+(function(){
+  const q = new URLSearchParams(location.search);
+  const view = (q.get('view') || '').toLowerCase();
+  const ql = (q.get('lang') || '').toLowerCase();
+  const wq = (q.get('wallet') || '').toLowerCase();
+  const sseOff = (q.get('sse') || '').toLowerCase();
+  window.__DESK_SSE_OFF = (sseOff === '0' || sseOff === 'off' || sseOff === 'false');
+  window.__DESK_LIVEUI = ((q.get('liveui')||'') === '1');
+  if (ql === 'en' || ql === 'zh') { lang = ql; localStorage.setItem('grokDeskLang', lang); }
+  setView(view === 'mind' ? 'mind' : (view === 'follow' ? 'follow' : 'grid'));
+  applyStaticI18n();
+  if (window.__DESK_LIVEUI) setTimeout(()=>setLivePill('on'), 300);
+  if (view === 'follow' && wq.startsWith('0x')) {
+    setTimeout(() => selectFollowWallet(wq, true), 400);
+  }
+})();
+
+tickEquityAnim();
+tick();
+setInterval(tick, 1500);
+window.addEventListener('resize', ()=>{
+  if(lastState){
+    drawPnl((lastState.portfolio||{}).equity_curve||[]);
+    if (viewMode === 'grid') renderFloor(lastState);
+  }
+});
+</script>
+</body>
+</html>

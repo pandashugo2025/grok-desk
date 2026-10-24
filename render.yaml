@@ -1,0 +1,12 @@
+# Render Blueprint — GROK DESK paper Polymarket simulator
+# After connecting Render + this repo: Blueprint → apply, or create Web Service from Dockerfile.
+services:
+  - type: web
+    name: grok-desk
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/state
+    # PORT is set automatically by Render; Dockerfile CMD reads it.
+    envVars:
+      - key: GROK_SPIDER_ROOT
+        value: /app/vendor/polymarket-spider

@@ -1,0 +1,2 @@
+# GROK DESK — stdlib is enough to run.
+# Optional: requests>=2.31.0

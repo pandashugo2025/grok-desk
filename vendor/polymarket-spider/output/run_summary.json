@@ -1,0 +1,13 @@
+{
+  "generated_hk": "2026-10-23 15:50:21 Asia/Hong_Kong",
+  "rows": 100,
+  "strategy_counts": {
+    "resolution-sniping": 45,
+    "market-making": 31,
+    "unknown": 9,
+    "arbitrage": 15
+  },
+  "csv": "/workspace/polymarket-spider/output/top100_pnl_all_20261023_155021.csv",
+  "markdown": "/workspace/polymarket-spider/output/top100_pnl_all_20261023_155021.md",
+  "raw_leaderboard": "/workspace/polymarket-spider/output/raw_leaderboard_20261023_155021.json"
+}
