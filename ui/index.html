@@ -621,6 +621,27 @@
     font:inherit; font-size:8px; letter-spacing:0.12em; padding:4px 8px;
     border-radius:3px; cursor:pointer; margin-left:8px;
   }
+
+  .follow-detail .fd-status {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .follow-detail .fd-status .fd-st-title {
+    font-size: 11px; letter-spacing: 0.08em; font-weight: 600;
+  }
+  .follow-detail .fd-status .fd-st-sub {
+    font-size: 9px; letter-spacing: 0.04em; line-height: 1.45; color: var(--muted);
+  }
+  .follow-detail .fd-status.error .fd-st-title { color: var(--red); }
+  .follow-detail .fd-status.empty .fd-st-title { color: var(--muted); }
+  .follow-detail .fd-status.loading .fd-st-title { color: var(--cyan); }
+  .follow-detail .fd-status .fd-st-actions { margin-top: 4px; }
+  .follow-detail .fd-status .fd-st-actions button {
+    font: inherit; font-size: 9px; letter-spacing: 0.12em;
+    padding: 7px 12px; min-height: 36px; border-radius: 4px; cursor: pointer;
+    border: 1px solid rgba(77,224,255,0.4); background: rgba(77,224,255,0.08); color: var(--cyan);
+    touch-action: manipulation;
+  }
+
   .act-row .dir { color:var(--label); margin-right:4px; }
   .follow-detail .fd-back {
     display:none; background:transparent; border:1px solid var(--border);
@@ -1082,7 +1103,7 @@
   .follow-toolbar .csv-age.stale b { color: #ffc857; }
   .follow-toolbar .csv-age.missing b { color: var(--red); }
 
-  /* ===== FOLLOW MOBILE DENSITY (mind23) ===== */
+  /* ===== FOLLOW MOBILE DENSITY (mind24) ===== */
   .follow-toolbar .ft-filters,
   .follow-toolbar .ft-search,
   .follow-toolbar .ft-actions,
@@ -1598,7 +1619,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind23</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind24</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1610,8 +1631,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind23"></script>
-<script src="/mind.js?v=20261024mind23"></script>
+<script src="/floor.js?v=20261024mind24"></script>
+<script src="/mind.js?v=20261024mind24"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1636,7 +1657,14 @@ const I18N = {
     follow_refresh:'刷新蜘蛛', follow_csv_age:'CSV 年齡', follow_refreshing:'刷新中…',
     follow_live:'準即時·SSE', follow_live_on:'準即時·已連線', follow_live_off:'準即時·未連線', follow_live_wait:'準即時·等待',
     follow_refreshed:'已觸發刷新', follow_act_err:'公開活動載入失敗', follow_act_empty:'此錢包暫無公開活動',
+    follow_act_empty_hint:'Polymarket 公開 API 無資料 · 紙上觀察不會捏造成交',
+    follow_act_err_hint:'可能離線、喚醒中，或上游暫時不可用 · 不會顯示假成交',
+    follow_act_offline:'公開活動離線',
+    follow_act_http:(c)=>`公開活動 HTTP ${c}`,
     follow_act_loading:'載入公開活動中…', follow_reload_act:'重新載入', follow_back_list:'← 返回列表',
+    follow_trades_empty:'暫無公開成交',
+    follow_mkts_empty:'暫無常出現市場',
+    follow_act_retry:'重試公開活動',
     follow_dir:'方向', follow_amt:'金額', follow_time:'時間', follow_mkt:'市場',
     follow_sort:'排序', follow_sort_rank:'名次', follow_sort_pnl_desc:'損益高→低',
     follow_sort_pnl_asc:'損益低→高', follow_sort_vol_desc:'成交量高→低',
@@ -1673,7 +1701,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind23',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind24',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1704,7 +1732,14 @@ const I18N = {
     follow_refresh:'REFRESH SPIDER', follow_csv_age:'CSV AGE', follow_refreshing:'Refreshing…',
     follow_live:'NEAR-LIVE·SSE', follow_live_on:'NEAR-LIVE·ON', follow_live_off:'NEAR-LIVE·OFF', follow_live_wait:'NEAR-LIVE·WAIT',
     follow_refreshed:'Refresh started', follow_act_err:'Failed to load public activity', follow_act_empty:'No public activity for this wallet',
+    follow_act_empty_hint:'Polymarket public API returned nothing · paper watch will not invent fills',
+    follow_act_err_hint:'Offline, waking, or upstream blip · no fake fills shown',
+    follow_act_offline:'Public activity offline',
+    follow_act_http:(c)=>`Public activity HTTP ${c}`,
     follow_act_loading:'Loading public activity…', follow_reload_act:'RELOAD', follow_back_list:'← BACK',
+    follow_trades_empty:'No public trades',
+    follow_mkts_empty:'No frequent markets',
+    follow_act_retry:'RETRY ACTIVITY',
     follow_dir:'SIDE', follow_amt:'SIZE', follow_time:'TIME', follow_mkt:'MARKET',
     follow_sort:'SORT', follow_sort_rank:'RANK', follow_sort_pnl_desc:'PnL HIGH→LOW',
     follow_sort_pnl_asc:'PnL LOW→HIGH', follow_sort_vol_desc:'VOL HIGH→LOW',
@@ -1741,7 +1776,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind23',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind24',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
@@ -2695,11 +2730,11 @@ async function selectFollowWallet(addr, fetchDetail) {
     <textarea id="followNote" placeholder="…"></textarea>
     <div class="note-hint">${t('follow_notes_hint')}</div>
     <h4>${t('follow_act')} <button type="button" class="btn-reload-act" id="followReloadAct">${t('follow_reload_act')}</button></h4>
-    <div id="followActBox"><div class="fd-status loading">${t('follow_act_loading')}</div></div>
+    <div id="followActBox"><div class="fd-status loading"><div class="fd-st-title">${t('follow_act_loading')}</div><div class="fd-st-sub">${t('follow_paper')}</div></div></div>
     <h4>${t('follow_trades')}</h4>
-    <div id="followTradeBox"><div class="fd-status loading">${t('follow_act_loading')}</div></div>
+    <div id="followTradeBox"><div class="fd-status loading"><div class="fd-st-title">${t('follow_act_loading')}</div><div class="fd-st-sub">${t('follow_paper')}</div></div></div>
     <h4>${t('follow_mkts')}</h4>
-    <div id="followMktBox"><div class="fd-status loading">…</div></div>
+    <div id="followMktBox"><div class="fd-status loading"><div class="fd-st-title">…</div><div class="fd-st-sub">${t('follow_paper')}</div></div></div>
   `;
   const ta = $('followNote');
   if (ta) {
@@ -2723,13 +2758,25 @@ async function selectFollowWallet(addr, fetchDetail) {
   followAbort = new AbortController();
   const signal = followAbort.signal;
   let recent = null;
+  let httpCode = 0;
   try {
-    const r = await fetch('/api/wallets/' + encodeURIComponent(addr) + '/recent?limit=40&nocache=1&_=' + Date.now(), { signal });
+    const to = setTimeout(() => followAbort.abort(), 20000);
+    const r = await fetch('/api/wallets/' + encodeURIComponent(addr) + '/recent?limit=40&nocache=1&_=' + Date.now(), { signal, cache: 'no-store' });
+    clearTimeout(to);
+    httpCode = r.status;
     if (!r.ok) throw new Error('HTTP ' + r.status);
     recent = await r.json();
+    if (recent && recent.error && !(recent.activity||[]).length && !(recent.trades||[]).length) {
+      // server-shaped error payload — keep as error, no fake rows
+    }
   } catch (e) {
-    if (e && e.name === 'AbortError') return;
-    recent = { error: String(e && e.message || e) };
+    if (e && e.name === 'AbortError') {
+      // timed out or superseded
+      if (followSelected !== addr) return;
+      recent = { error: 'timeout', _offline: true };
+    } else {
+      recent = { error: String(e && e.message || e), _offline: true, _http: httpCode };
+    }
   }
   if (followSelected !== addr) return; // raced
 
@@ -2745,32 +2792,60 @@ async function selectFollowWallet(addr, fetchDetail) {
   const tradeBox = $('followTradeBox');
   const mktBox = $('followMktBox');
   const err = recent && recent.error;
+  const offline = !!(recent && recent._offline);
   const acts = (recent && recent.activity) || [];
   const trades = (recent && recent.trades) || [];
   const mkts = (recent && recent.markets) || [];
 
+  function bindFdRetry(root) {
+    if (!root) return;
+    const b = root.querySelector('[data-fd-retry]');
+    if (b) b.onclick = () => selectFollowWallet(addr, true);
+  }
+  function fdStatus(kind, title, sub, withRetry) {
+    const retry = withRetry
+      ? `<div class="fd-st-actions"><button type="button" data-fd-retry="1">${t('follow_act_retry')}</button></div>`
+      : '';
+    return `<div class="fd-status ${kind}"><div class="fd-st-title">${title}</div><div class="fd-st-sub">${sub}</div>${retry}</div>`;
+  }
+
   if (actBox) {
     if (err && !acts.length) {
-      actBox.innerHTML = `<div class="fd-status error">${t('follow_act_err')}: ${escapeHtml(err)}</div>`;
+      const title = offline
+        ? (httpCode ? t('follow_act_http', httpCode) : t('follow_act_offline'))
+        : t('follow_act_err');
+      const detail = offline
+        ? t('follow_act_err_hint')
+        : `${t('follow_act_err_hint')}${err && err !== 'timeout' ? ' · ' + escapeHtml(err) : ''}`;
+      actBox.innerHTML = fdStatus('error', title, detail, true);
+      bindFdRetry(actBox);
     } else if (!acts.length) {
-      actBox.innerHTML = `<div class="fd-status empty">${t('follow_act_empty')}</div>`;
+      actBox.innerHTML = fdStatus('empty', t('follow_act_empty'), t('follow_act_empty_hint'), true);
+      bindFdRetry(actBox);
     } else {
       actBox.innerHTML = acts.slice(0, 24).map(activityRowHtml).join('');
     }
   }
   if (tradeBox) {
     if (err && !trades.length) {
-      tradeBox.innerHTML = `<div class="fd-status error">${t('follow_act_err')}</div>`;
+      tradeBox.innerHTML = fdStatus('error', t('follow_act_err'), t('follow_act_err_hint'), true);
+      bindFdRetry(tradeBox);
     } else if (!trades.length) {
-      tradeBox.innerHTML = `<div class="fd-status empty">${t('follow_act_empty')}</div>`;
+      tradeBox.innerHTML = fdStatus('empty', t('follow_trades_empty'), t('follow_act_empty_hint'), true);
+      bindFdRetry(tradeBox);
     } else {
       tradeBox.innerHTML = trades.slice(0, 20).map(activityRowHtml).join('');
     }
   }
   if (mktBox) {
-    mktBox.innerHTML = mkts.length
-      ? mkts.slice(0, 12).map(m => `<span class="mkt-chip">${escapeHtml(m.title)} · ${m.hits}</span>`).join('')
-      : `<div class="fd-status empty">—</div>`;
+    if (err && !mkts.length) {
+      mktBox.innerHTML = fdStatus('error', t('follow_act_err'), t('follow_act_err_hint'), true);
+      bindFdRetry(mktBox);
+    } else if (!mkts.length) {
+      mktBox.innerHTML = fdStatus('empty', t('follow_mkts_empty'), t('follow_act_empty_hint'), false);
+    } else {
+      mktBox.innerHTML = mkts.slice(0, 12).map(m => `<span class="mkt-chip">${escapeHtml(m.title)} · ${m.hits}</span>`).join('');
+    }
   }
   // mobile/iPad: keep sticky back visible at top of detail pane
   try {
