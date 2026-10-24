@@ -3,6 +3,15 @@
 Dense cyberpunk multi-agent desk UI inspired by viral Polymarket “GROK DESK / Hawkes” posts.
 **Paper trading only** — no keys, no CLOB order signing, no live posts.
 
+
+## Render deploy
+
+Live: https://grok-desk.onrender.com (free Docker, Singapore).
+
+- Blueprint: `render.yaml` (plan `free`, health `/health`).
+- **Auto-deploy broken until GitHub App access is fixed** — see [`docs/RENDER-AUTODEPLOY.md`](docs/RENDER-AUTODEPLOY.md).
+- Manual deploy helper: `RENDER_API_KEY=… ./scripts/render-deploy.sh` (no keep-alive cron).
+
 ## Run (local)
 
 ```bash

@@ -994,7 +994,40 @@
   }
 
 
-  /* ===== FOLLOW MOBILE DENSITY (mind21) ===== */
+
+  .share-btn {
+    background: rgba(77,224,255,0.08);
+    border: 1px solid rgba(77,224,255,0.4);
+    color: var(--cyan);
+    font: inherit; font-size: 8px; letter-spacing: 0.14em;
+    padding: 4px 10px; border-radius: 999px; cursor: pointer;
+    min-height: 28px; margin-left: 6px;
+    -webkit-tap-highlight-color: rgba(77,224,255,0.2);
+    touch-action: manipulation;
+  }
+  .share-btn:active { background: rgba(77,224,255,0.18); }
+  #shareToast {
+    display: none;
+    position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 9500;
+    max-width: min(420px, calc(100vw - 24px));
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(57,255,135,0.4);
+    background: rgba(8,14,12,0.96);
+    color: var(--neon);
+    font-size: 11px; line-height: 1.45; letter-spacing: 0.04em;
+    text-align: center;
+    box-shadow: 0 10px 32px rgba(0,0,0,0.45);
+  }
+  #shareToast.on { display: block; }
+  #shareToast .share-toast-sub { display:block; margin-top:4px; color:var(--muted); font-size:10px; }
+  @media (max-width: 768px) {
+    .share-btn { min-height: 40px; padding: 8px 12px; font-size: 9px; }
+  }
+
+  /* ===== FOLLOW MOBILE DENSITY (mind22) ===== */
   .follow-toolbar .ft-filters,
   .follow-toolbar .ft-search,
   .follow-toolbar .ft-actions,
@@ -1337,7 +1370,9 @@
     </div>
     <div class="swarm-pill"><span class="dot"></span><span id="swarmLabel">群體線上</span></div>
     <div class="paper-tag" data-i18n="paper_tag">紙上 · 模擬</div>
+    <button type="button" class="share-btn" id="shareLinkBtn" data-i18n="share_btn" title="Copy share URL">分享連結</button>
   </div>
+<div id="shareToast" role="status" aria-live="polite"></div>
 
   <div class="agentbar" id="agentBar"></div>
 
@@ -1507,7 +1542,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind21</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind22</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1519,8 +1554,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind21"></script>
-<script src="/mind.js?v=20261024mind21"></script>
+<script src="/floor.js?v=20261024mind22"></script>
+<script src="/mind.js?v=20261024mind22"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1567,7 +1602,12 @@ const I18N = {
     deck_bal:'台面餘額 · 紙上', bots_holding:'Bot 持倉狀態', activity:'活動流',
     stat_win:'勝率', stat_dd:'最大回撤', stat_fills:'成交', stat_spot:'現貨',
     doc_title:'GROK DESK — 紙上模擬 / PAPER',
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind21',
+    share_btn:'分享連結',
+    share_copied:'已複製分享連結',
+    share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
+    share_fail:'無法複製，請手動選取網址',
+
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind22',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1620,7 +1660,12 @@ const I18N = {
     deck_bal:'DECK BALANCE · PAPER', bots_holding:'BOTS ARE HOLDING', activity:'ACTIVITY',
     stat_win:'WIN', stat_dd:'MAX DD', stat_fills:'FILLS', stat_spot:'SPOT',
     doc_title:'GROK DESK — PAPER simulation',
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind21',
+    share_btn:'SHARE LINK',
+    share_copied:'Link copied',
+    share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
+    share_fail:'Copy failed — select the URL manually',
+
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind22',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
@@ -2197,6 +2242,47 @@ async function tick() {
   if (dismiss) dismiss.addEventListener('click', dismissSleepTip);
   setTimeout(maybeShowSleepTip, 4500);
 })();
+
+/* ---- share link (paper disclaimer) ---- */
+function showShareToast(ok) {
+  const el = $('shareToast');
+  if (!el) return;
+  if (ok) {
+    el.innerHTML = `<b>${t('share_copied')}</b><span class="share-toast-sub">${t('share_disclaimer')}</span>`;
+  } else {
+    el.textContent = t('share_fail');
+  }
+  el.classList.add('on');
+  clearTimeout(showShareToast._tmr);
+  showShareToast._tmr = setTimeout(() => el.classList.remove('on'), 3200);
+}
+async function copyShareLink() {
+  const url = 'https://grok-desk.onrender.com/';
+  const text = `${url}\nGROK DESK — ${t('share_disclaimer')}`;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      showShareToast(true);
+      return;
+    }
+  } catch (_) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly','');
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    showShareToast(!!ok);
+  } catch (_) {
+    showShareToast(false);
+  }
+}
+(function bindShareUi() {
+  const btn = $('shareLinkBtn');
+  if (btn) btn.addEventListener('click', copyShareLink);
+})();
+
 window.__deskNoteWakeFailure = noteWakeFailure;
 window.__deskNoteWakeSuccess = noteWakeSuccess;
 
