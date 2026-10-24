@@ -17,6 +17,7 @@
   let canvas, ctx, raf = 0, dpr = 1, t0 = performance.now();
   let state = { agents: {}, signal: {}, portfolio: {}, handoffs: [], market: {} };
   let hits = [];
+  let labelSlots = []; // mind31: ghost bubble collision slots (screen space)
   let selectCb = null;
   let TW = 54, TH = 27;
   let candleBuf = null; // cached pseudo-candles seeded once
@@ -160,18 +161,20 @@
     ctx.fillStyle = 'rgba(5,8,12,0.92)'; ctx.fill();
     ctx.strokeStyle = 'rgba(57,255,135,0.2)'; ctx.stroke();
 
-    // left wall brand
-    const brand = worldToScreen(0.05, 2.6, 1.55);
+    // left wall brand — mind31: quieter + higher so it doesn't eat ghost labels
+    const brand = worldToScreen(0.08, 0.85, 2.15);
     ctx.save();
     ctx.translate(brand.x, brand.y);
-    ctx.rotate(-0.52);
-    ctx.fillStyle = 'rgba(57,255,135,0.85)';
-    ctx.font = `800 ${11 * dpr}px monospace`;
+    ctx.rotate(-0.55);
+    ctx.globalAlpha = 0.38;
+    ctx.fillStyle = 'rgba(57,255,135,0.95)';
+    ctx.font = `800 ${8.5 * dpr}px monospace`;
     ctx.textAlign = 'left';
-    ctx.fillText(isZh() ? 'THE GROK FLOOR' : 'THE GROK FLOOR', 0, 0);
-    ctx.fillStyle = 'rgba(57,255,135,0.45)';
-    ctx.font = `600 ${7 * dpr}px monospace`;
-    ctx.fillText(isZh() ? '紙上 · 六桌線上' : 'PAPER · 6 DESKS LIVE', 0, 12 * dpr);
+    ctx.fillText('THE_GROK_FLOOR', 0, 0);
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = 'rgba(57,255,135,0.9)';
+    ctx.font = `600 ${5.5 * dpr}px monospace`;
+    ctx.fillText(isZh() ? '紙上 · 六桌線上' : 'PAPER · 6 DESKS LIVE', 0, 10 * dpr);
     ctx.restore();
   }
 
@@ -576,49 +579,123 @@
       ctx.fill();
     }
 
-    let bubble = detail ? detail.slice(0, 26) : '';
+    let bubble = detail ? detail.slice(0, 18) : '';
     if (!bubble) {
       if (st === 'RUNNING') bubble = i18n('bubble_trade', 'in a trade');
       else if (st === 'DONE') bubble = i18n('bubble_holding', 'holding');
       else bubble = i18n('bubble_standby', 'standby');
     }
     bubble = isZh() ? bubble : bubble.toUpperCase();
-    const showName = Math.sin(t * 0.7 + agent.phase) > 0.4;
-    const text = showName ? (agent.id + ' · ' + bubble).slice(0, 28) : bubble;
-    ctx.font = `700 ${7 * dpr}px monospace`; ctx.textAlign = 'center';
-    const tw = Math.min(ctx.measureText(text).width + 12 * dpr, 150 * dpr);
-    const bx = p.x - tw / 2, by = p.y - s * 1.9;
-    ctx.fillStyle = 'rgba(6,8,14,0.92)';
-    ctx.strokeStyle = hexA(agent.color, 0.92);
-    ctx.lineWidth = 1.2 * dpr;
-    ctx.beginPath(); ctx.roundRect(bx, by - 8 * dpr, tw, 13 * dpr, 3 * dpr); ctx.fill(); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(p.x - 4 * dpr, by + 5 * dpr);
-    ctx.lineTo(p.x, by + 11 * dpr);
-    ctx.lineTo(p.x + 4 * dpr, by + 5 * dpr);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#f0f4ff'; ctx.fillText(text, p.x, by + 1.5 * dpr);
+    /* mind31: shorter primary tag; name only for RUNNING to cut clutter */
+    const prio = st === 'RUNNING' ? 3 : (st === 'DONE' ? 2 : 1);
+    const primary = (prio >= 2 ? (agent.id + ' · ' + bubble) : bubble).slice(0, 22);
+    const secondary = bubble.slice(0, 14);
+    labelSlots.push({
+      id: agent.id,
+      color: agent.color,
+      prio,
+      primary,
+      secondary,
+      ax: p.x,
+      ay: p.y - s * 1.85,
+      ghostR: s,
+    });
 
     hits.push({ id: agent.id, x: p.x, y: p.y, r: Math.max(s * 1.7, 28 * dpr) });
   }
 
+  function rectsOverlap(a, b, pad) {
+    return !(a.x + a.w + pad < b.x || b.x + b.w + pad < a.x || a.y + a.h + pad < b.y || b.y + b.h + pad < a.y);
+  }
+
+  function drawGhostLabels() {
+    /* mind31: place smaller bubbles with collision avoid / priority hide */
+    const slots = labelSlots.slice().sort((a, b) => b.prio - a.prio || a.id.localeCompare(b.id));
+    const placed = [];
+    const phone = canvas.width < 520 * dpr;
+    const fs = (phone ? 5.4 : 5.8) * dpr;
+    const padX = 5 * dpr, padY = 2.6 * dpr;
+    const th = fs + padY * 2;
+    const offsets = [
+      [0, 0], [0, -16 * dpr], [0, 14 * dpr],
+      [-22 * dpr, -10 * dpr], [22 * dpr, -10 * dpr],
+      [0, -28 * dpr], [-30 * dpr, 6 * dpr], [30 * dpr, 6 * dpr],
+    ];
+
+    for (const slot of slots) {
+      let text = slot.primary;
+      ctx.font = `700 ${fs}px monospace`;
+      ctx.textAlign = 'center';
+      let tw = Math.min(ctx.measureText(text).width + padX * 2, (phone ? 110 : 128) * dpr);
+      let chosen = null;
+      const tryPlace = (t) => {
+        tw = Math.min(ctx.measureText(t).width + padX * 2, (phone ? 110 : 128) * dpr);
+        for (const [dx, dy] of offsets) {
+          const x = slot.ax + dx - tw / 2;
+          const y = slot.ay + dy - th / 2;
+          const rect = { x, y, w: tw, h: th };
+          let hit = false;
+          for (const p of placed) {
+            if (rectsOverlap(rect, p, 3 * dpr)) { hit = true; break; }
+          }
+          /* also keep off ghost bodies a bit when offset sideways */
+          if (!hit) return { rect, text: t, cx: slot.ax + dx, cy: slot.ay + dy };
+        }
+        return null;
+      };
+      chosen = tryPlace(text);
+      if (!chosen && slot.secondary !== text) {
+        text = slot.secondary;
+        chosen = tryPlace(text);
+      }
+      if (!chosen) {
+        /* low-priority: drop; high: force short above ghost */
+        if (slot.prio < 2) continue;
+        text = slot.id;
+        tw = Math.min(ctx.measureText(text).width + padX * 2, 72 * dpr);
+        chosen = {
+          rect: { x: slot.ax - tw / 2, y: slot.ay - th / 2 - 10 * dpr, w: tw, h: th },
+          text,
+          cx: slot.ax,
+          cy: slot.ay - 10 * dpr,
+        };
+      }
+      placed.push(chosen.rect);
+      const bx = chosen.rect.x, by = chosen.rect.y;
+      ctx.fillStyle = 'rgba(6,8,14,0.88)';
+      ctx.strokeStyle = hexA(slot.color, slot.prio >= 3 ? 0.9 : 0.65);
+      ctx.lineWidth = 1 * dpr;
+      ctx.beginPath(); ctx.roundRect(bx, by, chosen.rect.w, th, 2.5 * dpr); ctx.fill(); ctx.stroke();
+      /* pointer only when near default slot */
+      if (Math.abs(chosen.cx - slot.ax) < 4 * dpr && Math.abs(chosen.cy - slot.ay) < 6 * dpr) {
+        ctx.beginPath();
+        ctx.moveTo(slot.ax - 3.5 * dpr, by + th);
+        ctx.lineTo(slot.ax, by + th + 5 * dpr);
+        ctx.lineTo(slot.ax + 3.5 * dpr, by + th);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      ctx.fillStyle = '#e8eefc';
+      ctx.fillText(chosen.text, chosen.cx, by + th * 0.72);
+    }
+  }
+
   function drawFloatingHints(t) {
-    // denser ambient labels near props (readable chips); thin out on narrow
-    if (canvas.width < 520 * dpr && Math.sin(t * 0.5) < 0.2) return;
+    // mind31: sparse ambient chips — don't compete with ghost labels
+    const coarse = (typeof matchMedia === 'function') && matchMedia('(pointer: coarse)').matches;
+    if (coarse && Math.sin(t * 0.35) < 0.55) return;
+    if (canvas.width < 520 * dpr && Math.sin(t * 0.5) < 0.35) return;
     const hints = isZh()
       ? [
-          [0.9, 2.4, 1.1, '掃描中', '#2dd4bf'],
-          [7.0, 3.2, 1.0, '紙上成交', '#ffc857'],
+          [7.15, 4.55, 1.15, '紙上成交', '#ffc857'],
           [3.9, 0.3, 2.35, '主螢幕', '#39ff87'],
         ]
       : [
-          [0.9, 2.4, 1.1, 'SCANNING', '#2dd4bf'],
-          [7.0, 3.2, 1.0, 'PAPER FILLS', '#ffc857'],
+          [7.15, 4.55, 1.15, 'PAPER FILLS', '#ffc857'],
           [3.9, 0.3, 2.35, 'MAIN SCREEN', '#39ff87'],
         ];
     hints.forEach((h, i) => {
-      if (Math.sin(t * 0.6 + i) < -0.35) return; // flicker density without clutter
-      label(h[0], h[1], h[2], h[3], h[4], { size: 6.2, alpha: 0.55 });
+      if (Math.sin(t * 0.45 + i) < -0.15) return;
+      label(h[0], h[1], h[2], h[3], h[4], { size: 5.4, alpha: 0.4 });
     });
   }
 
@@ -629,6 +706,7 @@
     const t = (now - t0) / 1000;
     const w = canvas.width, h = canvas.height;
     hits = [];
+    labelSlots = [];
     ctx.clearRect(0, 0, w, h);
     const bg = ctx.createRadialGradient(w * 0.5, h * 0.28, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
     bg.addColorStop(0, '#0b121a'); bg.addColorStop(1, '#030406');
@@ -650,6 +728,7 @@
     AGENTS.forEach(a => drawDesk(a.desk[0], a.desk[1], a.color, a.id));
     const order = AGENTS.slice().sort((a, b) => (a.desk[0] + a.desk[1]) - (b.desk[0] + b.desk[1]));
     order.forEach(a => drawGhost(a, t));
+    drawGhostLabels();
     drawFloatingHints(t);
 
     ctx.fillStyle = 'rgba(107,122,150,0.78)';

@@ -1901,8 +1901,8 @@
     html.touch-device .topbar .share-btn {
       min-height: 34px;
     }
-    html.touch-device .agentbar { padding: 4px 10px; }
-    html.touch-device .agent { min-height: 38px; padding: 4px 8px; min-width: 120px; }
+    html.touch-device .agentbar { padding: 5px 32px 5px 12px; }
+    html.touch-device .agent { min-height: 44px; padding: 6px 11px; min-width: 142px; }
     html.touch-device .livewire { height: 20px; }
     html.touch-device .desk.view-grid .floor-stage {
       min-height: min(62dvh, 520px);
@@ -2052,6 +2052,101 @@
     }
     .gauge .val { font-size: 11px; }
     .cmd-hero .who { font-size: 14px; }
+  }
+
+  /* ===== mind31: landscape iPad Floor readability ===== */
+  /* Agentbar: clearer chips + fade peek (no mid-card cutoff) */
+  html.touch-device .agentbar {
+    display: flex !important;
+    grid-template-columns: none !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    gap: 10px;
+    padding: 6px 28px 6px 12px;
+    scroll-padding-inline: 12px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 40px), transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 40px), transparent 100%);
+  }
+  html.touch-device .agent {
+    flex: 0 0 auto;
+    min-width: 148px;
+    max-width: 190px;
+    min-height: 48px;
+    padding: 8px 12px;
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+  }
+  html.touch-device .agent .orb { width: 26px; height: 26px; font-size: 10px; }
+  html.touch-device .agent .name { font-size: 11px; letter-spacing: 0.16em; }
+  html.touch-device .agent .st { font-size: 9px; }
+
+  @media (orientation: landscape) and (max-height: 1024px) {
+    html.touch-device .agentbar {
+      padding: 5px 32px 5px 12px;
+      gap: 10px;
+      mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 44px), transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 44px), transparent 100%);
+    }
+    html.touch-device .agent {
+      min-width: 142px;
+      min-height: 44px;
+      padding: 6px 11px;
+    }
+    /* Top-right: more gap, not edge-crushed */
+    html.touch-device .topbar {
+      padding-right: max(14px, env(safe-area-inset-right, 0px));
+      padding-left: max(12px, env(safe-area-inset-left, 0px));
+    }
+    html.touch-device .topbar .tb-chips {
+      gap: 8px;
+      row-gap: 6px;
+      max-width: min(100%, 460px);
+      padding-right: 2px;
+    }
+    html.touch-device .topbar .lang-toggle {
+      margin-left: 6px;
+      gap: 0;
+    }
+    html.touch-device .topbar .lang-toggle button {
+      min-width: 36px;
+      min-height: 30px;
+      padding: 4px 9px;
+      font-size: 8px;
+    }
+    html.touch-device .topbar .swarm-pill,
+    html.touch-device .topbar .paper-tag,
+    html.touch-device .topbar .share-btn {
+      min-height: 30px;
+      padding: 4px 10px;
+      font-size: 8px;
+      letter-spacing: 0.1em;
+    }
+    html.touch-device .topbar .share-btn { margin-left: 0; }
+  }
+
+  /* Also apply fade peek on narrow non-touch agent strip */
+  @media (max-width: 1180px) {
+    .agentbar {
+      padding-right: 28px;
+      scroll-padding-inline: 10px;
+      scroll-snap-type: x proximity;
+      mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 36px), transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 36px), transparent 100%);
+    }
+    .agent { scroll-snap-align: start; min-width: 136px; }
+  }
+
+  /* Floor stage: a touch more breathing room on landscape touch */
+  @media (orientation: landscape) and (max-height: 1024px) {
+    html.touch-device .desk.view-grid .floor-stage {
+      min-height: min(64dvh, 540px);
+      height: min(70dvh, 580px);
+    }
   }
 
 </style>
@@ -2278,7 +2373,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind30</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind31</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -2290,8 +2385,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind30"></script>
-<script src="/mind.js?v=20261024mind30"></script>
+<script src="/floor.js?v=20261024mind31"></script>
+<script src="/mind.js?v=20261024mind31"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -2365,7 +2460,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind30',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind31',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -2445,7 +2540,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind30',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind31',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
