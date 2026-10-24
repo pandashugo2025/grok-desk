@@ -1103,7 +1103,7 @@
   .follow-toolbar .csv-age.stale b { color: #ffc857; }
   .follow-toolbar .csv-age.missing b { color: var(--red); }
 
-  /* ===== FOLLOW MOBILE DENSITY (mind24) ===== */
+  /* ===== FOLLOW MOBILE DENSITY (mind25) ===== */
   .follow-toolbar .ft-filters,
   .follow-toolbar .ft-search,
   .follow-toolbar .ft-actions,
@@ -1619,7 +1619,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind24</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind25</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1631,8 +1631,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind24"></script>
-<script src="/mind.js?v=20261024mind24"></script>
+<script src="/floor.js?v=20261024mind25"></script>
+<script src="/mind.js?v=20261024mind25"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1701,7 +1701,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind24',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind25',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1776,7 +1776,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind24',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind25',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
@@ -1866,7 +1866,61 @@ function fmtTTR(s) {
   const m = Math.floor(s/60), r = s%60;
   return m + ':' + String(r).padStart(2,'0');
 }
-function setView(mode) {
+
+/* ---- session restore (survive mind20 wake one-shot reload) ---- */
+const DESK_SESSION_KEY = 'grokDeskSessionV1';
+function readDeskSession() {
+  try {
+    const raw = sessionStorage.getItem(DESK_SESSION_KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || typeof o !== 'object') return null;
+    return o;
+  } catch (_) { return null; }
+}
+function writeDeskSession(patch) {
+  try {
+    const cur = readDeskSession() || {};
+    const next = Object.assign({}, cur, patch || {}, { ts: Date.now() });
+    // normalize
+    if (next.view !== 'mind' && next.view !== 'follow') next.view = 'grid';
+    if (next.wallet && typeof next.wallet === 'string') {
+      next.wallet = next.wallet.toLowerCase();
+      if (!next.wallet.startsWith('0x')) next.wallet = null;
+    } else {
+      next.wallet = null;
+    }
+    sessionStorage.setItem(DESK_SESSION_KEY, JSON.stringify(next));
+  } catch (_) {}
+}
+function saveDeskSessionNow() {
+  const strat = ($('followStrat') && $('followStrat').value) || 'all';
+  const minPnl = ($('followMinPnl') && $('followMinPnl').value) || '';
+  const sort = ($('followSort') && $('followSort').value) || 'rank';
+  const q = ($('followQ') && $('followQ').value) || '';
+  writeDeskSession({
+    view: viewMode,
+    wallet: followSelected || null,
+    detail: !!followSelected,
+    strat, minPnl, sort, q,
+    lang,
+  });
+}
+function applyDeskSessionFilters(sess) {
+  if (!sess) return;
+  try {
+    if ($('followStrat') && sess.strat) {
+      // option may not exist yet — set anyway; loadFollowList rebuilds options
+      $('followStrat').value = sess.strat;
+    }
+    if ($('followMinPnl') && sess.minPnl != null) $('followMinPnl').value = sess.minPnl;
+    if ($('followSort') && sess.sort) $('followSort').value = sess.sort;
+    if ($('followQ') && sess.q != null) $('followQ').value = sess.q;
+  } catch (_) {}
+}
+
+function setView(mode, opts) {
+  opts = opts || {};
   if (mode === 'mind') viewMode = 'mind';
   else if (mode === 'follow') viewMode = 'follow';
   else viewMode = 'grid';
@@ -1890,6 +1944,7 @@ function setView(mode) {
   } else {
     requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
+  if (!opts.skipSave) saveDeskSessionNow();
 }
 function ensureMind() {
   if (!mindStarted && window.MindViz) {
@@ -2692,12 +2747,14 @@ function closeFollowDetail() {
   renderFollowTable();
   const detail = $('followDetail');
   if (detail) detail.innerHTML = `<div class="follow-empty">${t('follow_pick')}</div>`;
+  saveDeskSessionNow();
 }
 
 async function selectFollowWallet(addr, fetchDetail) {
   followSelected = addr;
   const panel = $('followPanel');
   if (panel) panel.classList.add('detail-open');
+  saveDeskSessionNow();
   renderFollowTable();
   const w = followWallets.find(x => x.address === addr) || { address: addr };
   const detail = $('followDetail');
@@ -3026,13 +3083,13 @@ function syncIntervalButtons() {
   const minP = $('followMinPnl');
   const q = $('followQ');
   let qtmr = null;
-  if (strat) strat.addEventListener('change', () => loadFollowList());
-  if (minP) minP.addEventListener('change', () => loadFollowList());
+  if (strat) strat.addEventListener('change', () => { saveDeskSessionNow(); loadFollowList(); });
+  if (minP) minP.addEventListener('change', () => { saveDeskSessionNow(); loadFollowList(); });
   const sortEl = $('followSort');
-  if (sortEl) sortEl.addEventListener('change', () => renderFollowTable());
+  if (sortEl) sortEl.addEventListener('change', () => { saveDeskSessionNow(); renderFollowTable(); });
   if (q) q.addEventListener('input', () => {
     clearTimeout(qtmr);
-    qtmr = setTimeout(() => loadFollowList(), 280);
+    qtmr = setTimeout(() => { saveDeskSessionNow(); loadFollowList(); }, 280);
   });
   const rb = $('followRefreshBtn');
   if (rb) rb.addEventListener('click', () => refreshSpider());
@@ -3052,19 +3109,38 @@ function syncIntervalButtons() {
 
 (function(){
   const q = new URLSearchParams(location.search);
-  const view = (q.get('view') || '').toLowerCase();
+  const viewQ = (q.get('view') || '').toLowerCase();
   const ql = (q.get('lang') || '').toLowerCase();
   const wq = (q.get('wallet') || '').toLowerCase();
   const sseOff = (q.get('sse') || '').toLowerCase();
   window.__DESK_SSE_OFF = (sseOff === '0' || sseOff === 'off' || sseOff === 'false');
   window.__DESK_LIVEUI = ((q.get('liveui')||'') === '1');
   if (ql === 'en' || ql === 'zh') { lang = ql; localStorage.setItem('grokDeskLang', lang); }
-  setView(view === 'mind' ? 'mind' : (view === 'follow' ? 'follow' : 'grid'));
+
+  // URL wins; else restore last follow/view after wake reload (sessionStorage).
+  const sess = readDeskSession();
+  const hasUrlView = (viewQ === 'mind' || viewQ === 'follow' || viewQ === 'grid');
+  const hasUrlWallet = wq.startsWith('0x');
+  if (!hasUrlView && !hasUrlWallet && sess) {
+    applyDeskSessionFilters(sess);
+    if (sess.wallet && String(sess.wallet).startsWith('0x')) {
+      followSelected = String(sess.wallet).toLowerCase();
+    }
+  }
+  const mode = hasUrlView
+    ? (viewQ === 'mind' ? 'mind' : (viewQ === 'follow' ? 'follow' : 'grid'))
+    : (sess && (sess.view === 'mind' || sess.view === 'follow') ? sess.view : 'grid');
+
+  setView(mode, { skipSave: true });
   applyStaticI18n();
+  // Persist whatever we landed on (first visit stays grid with empty session fields).
+  saveDeskSessionNow();
   if (window.__DESK_LIVEUI) setTimeout(()=>setLivePill('on'), 300);
-  if (view === 'follow' && wq.startsWith('0x')) {
+  if (hasUrlWallet) {
+    followSelected = wq;
     setTimeout(() => selectFollowWallet(wq, true), 400);
   }
+  // If restoring follow+wallet, loadFollowList() (from setView) already re-opens detail when list arrives.
 })();
 
 tickEquityAnim();
