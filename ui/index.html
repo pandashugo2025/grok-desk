@@ -3,6 +3,33 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#030406" />
+<meta name="color-scheme" content="dark" />
+<meta name="robots" content="index,follow" />
+<meta name="author" content="GROK DESK" />
+<!-- Share / SEO — paper-only, no live trading claims -->
+<meta name="description" content="GROK DESK — 多代理 Polymarket 紙上交易台（僅模擬）。無金鑰、無真實下單。Multi-agent paper desk · simulation only · no keys · no live orders." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="GROK DESK" />
+<meta property="og:locale" content="zh_HK" />
+<meta property="og:locale:alternate" content="en_US" />
+<meta property="og:url" content="https://grok-desk.onrender.com/" />
+<meta property="og:title" content="GROK DESK — 紙上模擬交易台 / PAPER desk" />
+<meta property="og:description" content="多代理 Polymarket 紙上觀察與模擬（PAPER ONLY）。無私鑰、無 CLOB 真實下單。Paper multi-agent desk — simulation only, no live trading." />
+<meta property="og:image" content="https://grok-desk.onrender.com/og-share.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="GROK DESK — PAPER / 紙上模擬" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="GROK DESK — 紙上模擬 / PAPER desk" />
+<meta name="twitter:description" content="多代理 Polymarket 紙上交易台 · 僅模擬 · 無金鑰 · 無真實下單。Paper only — no keys, no live orders." />
+<meta name="twitter:image" content="https://grok-desk.onrender.com/og-share.png" />
+<meta name="twitter:image:alt" content="GROK DESK — PAPER simulation desk" />
+<link rel="canonical" href="https://grok-desk.onrender.com/" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
 <script>
 /* iPadOS desktop-class often skips coarse-pointer media; detect touch early */
 (function(){
@@ -13,7 +40,7 @@
   } catch (e) {}
 })();
 </script>
-<title>GROK DESK — PAPER</title>
+<title>GROK DESK — 紙上模擬 / PAPER</title>
 <style>
   :root {
     --bg: #030406;
@@ -967,7 +994,7 @@
   }
 
 
-  /* ===== FOLLOW MOBILE DENSITY (mind20) ===== */
+  /* ===== FOLLOW MOBILE DENSITY (mind21) ===== */
   .follow-toolbar .ft-filters,
   .follow-toolbar .ft-search,
   .follow-toolbar .ft-actions,
@@ -1480,7 +1507,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind20</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind21</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -1492,8 +1519,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261024mind20"></script>
-<script src="/mind.js?v=20261024mind20"></script>
+<script src="/floor.js?v=20261024mind21"></script>
+<script src="/mind.js?v=20261024mind21"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -1539,7 +1566,8 @@ const I18N = {
     cmd_stack:'指令堆疊', handoff_log:'交接紀錄',
     deck_bal:'台面餘額 · 紙上', bots_holding:'Bot 持倉狀態', activity:'活動流',
     stat_win:'勝率', stat_dd:'最大回撤', stat_fills:'成交', stat_spot:'現貨',
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind20',
+    doc_title:'GROK DESK — 紙上模擬 / PAPER',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind21',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -1591,7 +1619,8 @@ const I18N = {
     cmd_stack:'COMMAND STACK', handoff_log:'HANDOFF LOG',
     deck_bal:'DECK BALANCE · PAPER', bots_holding:'BOTS ARE HOLDING', activity:'ACTIVITY',
     stat_win:'WIN', stat_dd:'MAX DD', stat_fills:'FILLS', stat_spot:'SPOT',
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind20',
+    doc_title:'GROK DESK — PAPER simulation',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind21',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
@@ -1633,6 +1662,7 @@ function applyStaticI18n() {
   document.querySelectorAll('#langToggle button').forEach(b => {
     b.classList.toggle('on', b.dataset.lang === lang);
   });
+  try { document.title = t('doc_title'); } catch (_) {}
   window.DeskI18n = { lang, t };
   if (lastState) render(lastState);
   else {
@@ -1644,6 +1674,7 @@ function setLang(next) {
   lang = next === 'en' ? 'en' : 'zh';
   localStorage.setItem('grokDeskLang', lang);
   applyStaticI18n();
+  try { document.title = t('doc_title'); } catch (_) {}
   if (typeof updateWakeCopy === 'function') updateWakeCopy();
   const st = $('sleepTipText');
   if (st) st.textContent = t('sleep_tip');
