@@ -1,26 +1,25 @@
 /**
- * Desk Floor — isometric 2D office for GROK DESK SWARM GRID (v3 polish).
+ * Desk Floor — isometric 2D office for GROK DESK SWARM GRID (mind34).
  * FloorViz.start(canvas) / stop() / setState(s) / onSelect(cb)
- * Target: denser furniture + wall monitor like refs/floor-frame-*.png, ~60fps.
  */
 (function (global) {
   'use strict';
   const AGENTS = [
-    { id: 'EDGE',    color: '#ff4dcf', desk: [1.15, 0.95], phase: 0.2 },
-    { id: 'CLOSER',  color: '#ff8a3d', desk: [3.35, 0.95], phase: 1.1 },
-    { id: 'PRIOR',   color: '#c9a227', desk: [5.55, 0.95], phase: 2.0 },
-    { id: 'TAKER',   color: '#4d8cff', desk: [1.15, 3.15], phase: 2.9 },
-    { id: 'SPOTTER', color: '#2dd4bf', desk: [3.35, 3.15], phase: 3.8 },
-    { id: 'KELLY',   color: '#a855f7', desk: [5.55, 3.15], phase: 4.7 },
+    { id: 'EDGE',    color: '#ff4dcf', desk: [1.05, 0.90], phase: 0.2 },
+    { id: 'CLOSER',  color: '#ff8a3d', desk: [3.25, 0.90], phase: 1.1 },
+    { id: 'PRIOR',   color: '#c9a227', desk: [5.45, 0.90], phase: 2.0 },
+    { id: 'TAKER',   color: '#4d8cff', desk: [1.05, 3.20], phase: 2.9 },
+    { id: 'SPOTTER', color: '#2dd4bf', desk: [3.25, 3.20], phase: 3.8 },
+    { id: 'KELLY',   color: '#a855f7', desk: [5.45, 3.20], phase: 4.7 },
   ];
 
-  let canvas, ctx, raf = 0, dpr = 1, t0 = performance.now();
+  let canvas, ctx, raf = 0, dpr = 1, fit = 1, t0 = performance.now();
   let state = { agents: {}, signal: {}, portfolio: {}, handoffs: [], market: {} };
   let hits = [];
-  let labelSlots = []; // mind31: ghost bubble collision slots (screen space)
+  let labelSlots = [];
   let selectCb = null;
-  let TW = 54, TH = 27;
-  let candleBuf = null; // cached pseudo-candles seeded once
+  let TW = 52, TH = 26, TZ = 23;
+  let candleBuf = null;
 
   const rgba = (r, g, b, a) => `rgba(${r},${g},${b},${a})`;
   const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -35,20 +34,9 @@
     return fallback;
   }
   function isZh() { return !(global.DeskI18n && global.DeskI18n.lang === 'en'); }
-  /* mind32: dense = touch / short landscape / narrow — declutter floor */
-  function isDense() {
-    try {
-      if (typeof matchMedia === 'function') {
-        if (matchMedia('(pointer: coarse)').matches) return true;
-        if (matchMedia('(orientation: landscape) and (max-height: 900px)').matches) return true;
-      }
-    } catch (_) {}
-    return !!(canvas && canvas.width < 700 * dpr);
-  }
-  function showDecorLabels() { return !isDense(); }
 
   function iso(x, y, z) {
-    return { x: (x - y) * TW, y: (x + y) * TH - (z || 0) };
+    return { x: (x - y) * TW, y: (x + y) * TH - (z || 0) * TZ };
   }
   function worldToScreen(x, y, z) {
     const o = origin();
@@ -56,8 +44,16 @@
     return { x: o.x + p.x, y: o.y + p.y };
   }
   function origin() {
-    const phone = canvas.width < 520 * dpr;
-    return { x: canvas.width * (phone ? 0.50 : 0.52), y: canvas.height * (phone ? 0.14 : 0.16) };
+    // Room spans x in [-6*TW .. +8*TW] (midpoint +1*TW) and y in [-2.55*TZ .. +14*TH]
+    const hudTop = 28 * dpr;
+    const capBot = 22 * dpr;
+    const availH = Math.max(160 * dpr, canvas.height - hudTop - capBot);
+    const roomH = 2.55 * TZ + 14 * TH;
+    const topPad = hudTop + Math.max(0, (availH - roomH) * 0.48);
+    return {
+      x: canvas.width * 0.5 - TW,
+      y: topPad + 2.55 * TZ,
+    };
   }
 
   function resize() {
@@ -69,10 +65,13 @@
     const w = Math.max(320, (Math.max(r.width, 320) * dpr) | 0);
     const h = Math.max(220, (Math.max(r.height, 220) * dpr) | 0);
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-    // phone: prefer filling width; desktop: classic fit
-    const phone = w < 520 * dpr;
-    const fit = Math.min(w / (phone ? 700 : 780), h / (phone ? 460 : 420));
-    TW = 52 * fit; TH = 26 * fit;
+    const availW = Math.max(260 * dpr, w - 36 * dpr);
+    const availH = Math.max(160 * dpr, h - 50 * dpr);
+    // 14*52 = 728 horiz span; 14*26 + 2.55*23 = 422.65 vert span
+    fit = Math.min(availW / 748, availH / 436);
+    TW = 52 * fit;
+    TH = 26 * fit;
+    TZ = 23 * fit;
   }
 
   function setState(s) { if (s) state = s; }
@@ -98,46 +97,27 @@
     const p101 = worldToScreen(x + w, y, h);
     const p011 = worldToScreen(x, y + d, h);
     const p111 = worldToScreen(x + w, y + d, h);
-    ctx.beginPath(); ctx.moveTo(p001.x, p001.y); ctx.lineTo(p101.x, p101.y); ctx.lineTo(p111.x, p111.y); ctx.lineTo(p011.x, p011.y); ctx.closePath();
-    ctx.fillStyle = top; ctx.fill();
+    // left face (y+ front-left)
     ctx.beginPath(); ctx.moveTo(p011.x, p011.y); ctx.lineTo(p111.x, p111.y); ctx.lineTo(p110.x, p110.y); ctx.lineTo(p010.x, p010.y); ctx.closePath();
     ctx.fillStyle = left; ctx.fill();
+    // right face (x+ front-right)
     ctx.beginPath(); ctx.moveTo(p101.x, p101.y); ctx.lineTo(p111.x, p111.y); ctx.lineTo(p110.x, p110.y); ctx.lineTo(p100.x, p100.y); ctx.closePath();
     ctx.fillStyle = right; ctx.fill();
+    // top face
+    ctx.beginPath(); ctx.moveTo(p001.x, p001.y); ctx.lineTo(p101.x, p101.y); ctx.lineTo(p111.x, p111.y); ctx.lineTo(p011.x, p011.y); ctx.closePath();
+    ctx.fillStyle = top; ctx.fill();
     ctx.strokeStyle = edge || 'rgba(57,255,135,0.16)'; ctx.lineWidth = 1 * dpr;
-    ctx.beginPath(); ctx.moveTo(p001.x, p001.y); ctx.lineTo(p101.x, p101.y); ctx.lineTo(p111.x, p111.y); ctx.lineTo(p011.x, p011.y); ctx.closePath(); ctx.stroke();
+    ctx.stroke();
     return { p001, p101, p011, p111, p000, p100, p010, p110 };
-  }
-
-  function chip(sx, sy, text, col, opts) {
-    opts = opts || {};
-    const fs = (opts.size || 7.5) * dpr;
-    ctx.font = `700 ${fs}px monospace`; ctx.textAlign = 'center';
-    const padX = 6 * dpr, padY = 3.5 * dpr;
-    const tw = ctx.measureText(text).width + padX * 2;
-    const th = fs + padY * 2;
-    ctx.fillStyle = opts.bg || 'rgba(4,8,14,0.88)';
-    ctx.strokeStyle = hexA(col || '#39ff87', opts.alpha || 0.75);
-    ctx.lineWidth = 1 * dpr;
-    ctx.beginPath();
-    ctx.roundRect(sx - tw / 2, sy - th / 2, tw, th, 2.5 * dpr);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = col || '#39ff87';
-    ctx.fillText(text, sx, sy + fs * 0.32);
-  }
-
-  function label(x, y, z, text, col, opts) {
-    const p = worldToScreen(x, y, z);
-    chip(p.x, p.y, text, col, opts);
   }
 
   function ensureCandles() {
     if (candleBuf && candleBuf.length) return candleBuf;
     candleBuf = [];
     let p = 0.5;
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < 24; i++) {
       const drift = (Math.random() - 0.48) * 0.06;
-      const o = p, c = Math.max(0.12, Math.min(0.88, p + drift));
+      const o = p, c = Math.max(0.14, Math.min(0.86, p + drift));
       const hi = Math.max(o, c) + Math.random() * 0.04;
       const lo = Math.min(o, c) - Math.random() * 0.04;
       candleBuf.push({ o, c, hi, lo });
@@ -147,238 +127,257 @@
   }
 
   function drawRoom() {
-    const neon = 'rgba(57,255,135,0.32)';
+    const neon = 'rgba(57,255,135,0.34)';
     for (let y = 0; y < 6; y++) for (let x = 0; x < 8; x++) {
       const shade = ((x + y) & 1) ? 'rgba(14,18,24,0.96)' : 'rgba(9,12,17,0.96)';
       drawTile(x, y, shade, 'rgba(57,255,135,0.055)');
     }
-    // subtle floor glow strip
-    for (let x = 0; x < 8; x++) {
-      const a = worldToScreen(x, 0, 0.02), b = worldToScreen(x + 1, 0, 0.02);
-      ctx.strokeStyle = 'rgba(57,255,135,0.12)'; ctx.lineWidth = 1 * dpr;
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    }
     const a = worldToScreen(0, 0, 0), b = worldToScreen(8, 0, 0);
     const a2 = worldToScreen(0, 0, 2.55), b2 = worldToScreen(8, 0, 2.55);
     const c = worldToScreen(0, 6, 0), c2 = worldToScreen(0, 6, 2.55);
-    // back wall
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(b2.x, b2.y); ctx.lineTo(a2.x, a2.y); ctx.closePath();
-    const wg = ctx.createLinearGradient(a.x, a2.y, a.x, a.y);
-    wg.addColorStop(0, 'rgba(12,16,22,0.96)'); wg.addColorStop(1, 'rgba(7,10,14,0.94)');
-    ctx.fillStyle = wg; ctx.fill();
-    ctx.strokeStyle = neon; ctx.lineWidth = 1.6 * dpr; ctx.stroke();
-    // left wall
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.lineTo(c2.x, c2.y); ctx.lineTo(a2.x, a2.y); ctx.closePath();
-    ctx.fillStyle = 'rgba(5,8,12,0.92)'; ctx.fill();
-    ctx.strokeStyle = 'rgba(57,255,135,0.2)'; ctx.stroke();
+    const d = worldToScreen(8, 6, 0);
 
-    // left wall brand — mind32: hide on dense; quiet on desktop
-    if (isDense()) { /* skip THE_GROK_FLOOR brand on touch/landscape */ }
-    else {
-    const brand = worldToScreen(0.08, 0.85, 2.15);
+    // back wall (y=0, x=0..8, z=0..2.55)
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(b2.x, b2.y); ctx.lineTo(a2.x, a2.y); ctx.closePath();
+    const wg = ctx.createLinearGradient(a.x, a2.y, a.x, b.y);
+    wg.addColorStop(0, 'rgba(13,18,26,0.97)'); wg.addColorStop(1, 'rgba(7,10,15,0.95)');
+    ctx.fillStyle = wg; ctx.fill();
+    ctx.strokeStyle = neon; ctx.lineWidth = 1.4 * dpr; ctx.stroke();
+
+    // left wall (x=0, y=0..6, z=0..2.55)
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.lineTo(c2.x, c2.y); ctx.lineTo(a2.x, a2.y); ctx.closePath();
+    ctx.fillStyle = 'rgba(6,9,14,0.94)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(57,255,135,0.22)'; ctx.lineWidth = 1.2 * dpr; ctx.stroke();
+
+    // subtle front floor rim
+    ctx.strokeStyle = 'rgba(57,255,135,0.20)';
+    ctx.lineWidth = 1.2 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    // left wall subtle watermark sheared onto left wall plane
+    const wl0 = worldToScreen(0.04, 1.0, 2.15);
+    const wl1 = worldToScreen(0.04, 3.6, 2.15);
+    const dx = wl1.x - wl0.x, dy = wl1.y - wl0.y;
+    if (Math.abs(dx) > 20 * dpr) {
+      ctx.save();
+      ctx.translate(wl0.x, wl0.y);
+      ctx.transform(-1, -dy / dx, 0, 1, 0, 0);
+      // Wait: keep text left-to-right along left wall going down-left:
+      ctx.restore();
+      ctx.save();
+      const wlStart = worldToScreen(0.04, 3.8, 1.95);
+      ctx.translate(wlStart.x, wlStart.y);
+      ctx.transform(1, -TH / TW, 0, 1, 0, 0);
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = '#39ff87';
+      ctx.font = `800 ${Math.max(6, 7.5 * fit)}px monospace`;
+      ctx.textAlign = 'left';
+      ctx.fillText('THE_GROK_FLOOR', 0, 0);
+      ctx.font = `600 ${Math.max(5, 5.5 * fit)}px monospace`;
+      ctx.fillText(isZh() ? '紙上 · 六桌線上' : 'PAPER · 6 DESKS LIVE', 0, 10 * fit);
+      ctx.restore();
+    }
+  }
+
+  /**
+   * Helper to render a screen mounted on the back wall (y=0.05) with proper isometric shear + strict clip.
+   */
+  function drawBackWallScreen(x0, x1, z0, z1, borderCol, drawInner) {
+    const sy = 0.05;
+    const bl = worldToScreen(x0, sy, z0);
+    const br = worldToScreen(x1, sy, z0);
+    const tl = worldToScreen(x0, sy, z1);
+    const tr = worldToScreen(x1, sy, z1);
+    const W = tr.x - tl.x;
+    const H = bl.y - tl.y;
+    if (W < 8 || H < 8) return;
+
+    // bezel shadow / frame
+    ctx.beginPath();
+    ctx.moveTo(tl.x, tl.y); ctx.lineTo(tr.x, tr.y); ctx.lineTo(br.x, br.y); ctx.lineTo(bl.x, bl.y);
+    ctx.closePath();
+    ctx.fillStyle = '#040810';
+    ctx.fill();
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 1.4 * dpr;
+    ctx.stroke();
+
+    // clip to inner screen and shear to back wall plane
     ctx.save();
-    ctx.translate(brand.x, brand.y);
-    ctx.rotate(-0.55);
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = 'rgba(57,255,135,0.95)';
-    ctx.font = `800 ${8.5 * dpr}px monospace`;
-    ctx.textAlign = 'left';
-    ctx.fillText('THE_GROK_FLOOR', 0, 0);
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = 'rgba(57,255,135,0.9)';
-    ctx.font = `600 ${5.5 * dpr}px monospace`;
-    ctx.fillText(isZh() ? '紙上 · 六桌線上' : 'PAPER · 6 DESKS LIVE', 0, 10 * dpr);
+    ctx.beginPath();
+    ctx.moveTo(tl.x, tl.y); ctx.lineTo(tr.x, tr.y); ctx.lineTo(br.x, br.y); ctx.lineTo(bl.x, bl.y);
+    ctx.closePath();
+    ctx.clip();
+    const slope = (tr.y - tl.y) / W;
+    ctx.transform(1, slope, 0, 1, tl.x, tl.y);
+    drawInner(W, H);
     ctx.restore();
-    } /* end !isDense brand */
   }
 
   function drawWallScreens(t) {
-    /* mind32: mid-wall ticker removed — it projected onto ghost cluster in landscape.
-       Status ticker is drawStageHud() at top of canvas (screen space). */
-    const slug = ((state.market || {}).slug || 'BTC-UPDOWN').toString().slice(0, 18).toUpperCase();
+    const slug = ((state.market || {}).slug || 'BTC-UPDOWN-5M').toString().slice(0, 16).toUpperCase();
     const pnl = Number((state.portfolio || {}).pnl_total || 0);
     const eq = Number((state.portfolio || {}).equity || 10000);
     const pct = eq ? (pnl / Math.max(1, eq - pnl)) * 100 : 0;
 
-    // main wall monitor bezel
-    const mx = 2.35, my = 0.04, mw = 3.5, mh = 1.72;
-    const z0 = 0.48, z1 = 0.48 + mh;
-    const bl = worldToScreen(mx, my, z0);
-    const br = worldToScreen(mx + mw, my, z0);
-    const tl = worldToScreen(mx, my, z1);
-    const tr = worldToScreen(mx + mw, my, z1);
-    // outer bezel
-    ctx.beginPath(); ctx.moveTo(tl.x - 3 * dpr, tl.y - 3 * dpr); ctx.lineTo(tr.x + 3 * dpr, tr.y - 3 * dpr);
-    ctx.lineTo(br.x + 3 * dpr, br.y + 3 * dpr); ctx.lineTo(bl.x - 3 * dpr, bl.y + 3 * dpr); ctx.closePath();
-    ctx.fillStyle = '#0a1018'; ctx.fill();
-    ctx.strokeStyle = 'rgba(57,255,135,0.65)'; ctx.lineWidth = 1.8 * dpr; ctx.stroke();
-    // screen
-    ctx.beginPath(); ctx.moveTo(tl.x, tl.y); ctx.lineTo(tr.x, tr.y); ctx.lineTo(br.x, br.y); ctx.lineTo(bl.x, bl.y); ctx.closePath();
-    ctx.fillStyle = '#03060b'; ctx.fill();
-
-    const W = br.x - bl.x, H = bl.y - tl.y;
-    const candles = ensureCandles();
-    const n = candles.length;
-    const cw = W / (n + 2);
-    // animate last candle with signal bias
-    const up = Number((state.signal || {}).up_price || 0.5);
-    const last = candles[n - 1];
-    const liveC = Math.max(0.1, Math.min(0.9, last.o + (up - 0.5) * 0.35 + Math.sin(t * 1.6) * 0.015));
-
-    for (let i = 0; i < n; i++) {
-      const cndl = candles[i];
-      const o = cndl.o, c = (i === n - 1) ? liveC : cndl.c;
-      const hi = Math.max(o, c, cndl.hi), lo = Math.min(o, c, cndl.lo);
-      const x = bl.x + (i + 1.2) * cw;
-      const yHi = tl.y + (1 - hi) * H * 0.78 + H * 0.16;
-      const yLo = tl.y + (1 - lo) * H * 0.78 + H * 0.16;
-      const yO = tl.y + (1 - o) * H * 0.78 + H * 0.16;
-      const yC = tl.y + (1 - c) * H * 0.78 + H * 0.16;
-      const bull = c >= o;
-      ctx.strokeStyle = bull ? '#39ff87' : '#ff5d7a';
-      ctx.lineWidth = 1 * dpr;
-      ctx.beginPath(); ctx.moveTo(x, yHi); ctx.lineTo(x, yLo); ctx.stroke();
-      const bodyTop = Math.min(yO, yC), bodyH = Math.max(2 * dpr, Math.abs(yC - yO));
-      ctx.fillStyle = bull ? '#39ff87' : '#ff5d7a';
-      ctx.fillRect(x - cw * 0.28, bodyTop, cw * 0.56, bodyH);
-    }
-
-    // PnL overlay
-    ctx.fillStyle = '#e8fff4';
-    ctx.font = `800 ${10 * dpr}px monospace`;
-    ctx.textAlign = 'left';
-    const title = slug.slice(0, 16);
-    ctx.fillText(title, tl.x + 8 * dpr, tl.y + 14 * dpr);
-    ctx.fillStyle = pnl >= 0 ? '#39ff87' : '#ff5d7a';
-    ctx.font = `800 ${13 * dpr}px monospace`;
-    const pnlTxt = (pnl >= 0 ? '+' : '') + pct.toFixed(2) + '%';
-    ctx.fillText(pnlTxt, tl.x + 8 * dpr, tl.y + 30 * dpr);
-    ctx.fillStyle = 'rgba(180,200,220,0.7)';
-    ctx.font = `600 ${7.5 * dpr}px monospace`;
-    ctx.fillText((pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2) + ' PAPER', tl.x + 8 * dpr, tl.y + 42 * dpr);
-
-    // side wall screens (left + right of main)
-    /* mind32: right screen inset so FLOW isn't clipped by stage edge */
-    [[0.25, 0.05, 1.7, '#39ff87'], [5.95, 0.05, 1.35, '#ff4dcf']].forEach((sc, i) => {
-      const [sx, sy, sw, col] = sc;
-      const p0 = worldToScreen(sx, sy, 0.85);
-      const p1 = worldToScreen(sx + sw, sy, 0.85);
-      const p2 = worldToScreen(sx + sw, sy, 2.05);
-      const p3 = worldToScreen(sx, sy, 2.05);
-      ctx.beginPath(); ctx.moveTo(p3.x, p3.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p0.x, p0.y); ctx.closePath();
-      ctx.fillStyle = '#04070c'; ctx.fill();
-      ctx.strokeStyle = hexA(col, 0.55); ctx.lineWidth = 1.2 * dpr; ctx.stroke();
-      // mini candles / bars
-      const ww = p1.x - p0.x, hh = p0.y - p3.y;
-      for (let k = 0; k < 10; k++) {
-        const u = (k + 0.5) / 10;
-        const x = p3.x + ww * u;
-        const hgt = (0.25 + 0.55 * (0.5 + 0.5 * Math.sin(t * 1.8 + k * 0.7 + i))) * hh * 0.7;
-        ctx.fillStyle = Math.sin(t + k + i) > 0 ? col : '#ff5d7a';
+    // 1) Left back-wall screen: SCAN
+    drawBackWallScreen(0.38, 1.98, 0.58, 2.18, hexA('#39ff87', 0.55), (W, H) => {
+      ctx.fillStyle = '#39ff87';
+      ctx.font = `700 ${Math.max(6, 6.8 * fit)}px monospace`;
+      ctx.textAlign = 'left';
+      ctx.fillText('SCAN', 5 * fit, 10 * fit);
+      const nBars = 9;
+      const bw = Math.max(2 * fit, (W - 12 * fit) / (nBars * 1.55));
+      for (let k = 0; k < nBars; k++) {
+        const u = (k + 0.5) / nBars;
+        const x = 6 * fit + (W - 12 * fit) * u;
+        const hgt = (0.22 + 0.52 * (0.5 + 0.5 * Math.sin(t * 1.8 + k * 0.7))) * (H - 16 * fit);
+        ctx.fillStyle = Math.sin(t + k) >= 0 ? '#39ff87' : '#ff5d7a';
         ctx.globalAlpha = 0.85;
-        ctx.fillRect(x - 2.5 * dpr, p0.y - hgt - hh * 0.12, 5 * dpr, hgt);
+        ctx.fillRect(x - bw * 0.5, H - 4 * fit - hgt, bw, hgt);
       }
       ctx.globalAlpha = 1;
-      /* mind32: keep FLOW/SCAN inside bezel; skip if would clip off canvas edge */
-      const tag = i ? 'FLOW' : 'SCAN';
-      ctx.font = `700 ${6.5 * dpr}px monospace`;
-      ctx.textAlign = 'left';
-      const tagX = p3.x + 6 * dpr;
-      const tagY = p3.y + 10 * dpr;
-      const tagW = ctx.measureText(tag).width;
-      const edgePad = 10 * dpr;
-      if (tagX > edgePad && tagX + tagW < canvas.width - edgePad && tagY > edgePad) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(Math.min(p3.x, p2.x) + 2 * dpr, Math.min(p3.y, p2.y) + 2 * dpr,
-          Math.abs(p2.x - p3.x) - 4 * dpr, Math.abs(p0.y - p3.y) - 4 * dpr);
-        ctx.clip();
-        ctx.fillStyle = col;
-        ctx.fillText(tag, tagX, tagY);
-        ctx.restore();
-      }
     });
 
-    // right rules board
-    const rx = 7.15, ry = 0.08;
-    const r0 = worldToScreen(rx, ry, 1.1);
-    const r1 = worldToScreen(rx + 0.75, ry, 1.1);
-    const r2 = worldToScreen(rx + 0.75, ry, 2.2);
-    const r3 = worldToScreen(rx, ry, 2.2);
-    ctx.beginPath(); ctx.moveTo(r3.x, r3.y); ctx.lineTo(r2.x, r2.y); ctx.lineTo(r1.x, r1.y); ctx.lineTo(r0.x, r0.y); ctx.closePath();
-    ctx.fillStyle = 'rgba(8,12,18,0.92)'; ctx.fill();
-    ctx.strokeStyle = 'rgba(57,255,135,0.4)'; ctx.stroke();
-    const rules = isZh()
-      ? ['DAY · 6 規則', '2 損 = 出局', '僅紙上', '無金鑰', '無真實下單']
-      : ['DAY · 6 RULES', '2 losses = out', 'PAPER ONLY', 'NO KEYS', 'NO LIVE CLOB'];
-    ctx.font = `700 ${6.5 * dpr}px monospace`;
-    ctx.textAlign = 'left';
-    rules.forEach((line, i) => {
-      ctx.fillStyle = i === 0 ? '#39ff87' : 'rgba(180,200,220,0.75)';
-      ctx.fillText(line, r3.x + 5 * dpr, r3.y + (12 + i * 11) * dpr);
+    // 2) Center main back-wall screen: Candles + PnL
+    drawBackWallScreen(2.22, 5.48, 0.42, 2.32, 'rgba(57,255,135,0.72)', (W, H) => {
+      const candles = ensureCandles();
+      const n = candles.length;
+      const cw = W / (n + 2);
+      const up = Number((state.signal || {}).up_price || 0.5);
+      const last = candles[n - 1];
+      const liveC = Math.max(0.14, Math.min(0.86, last.o + (up - 0.5) * 0.32 + Math.sin(t * 1.6) * 0.015));
+
+      for (let i = 0; i < n; i++) {
+        const cndl = candles[i];
+        const o = cndl.o, c = (i === n - 1) ? liveC : cndl.c;
+        const hi = Math.max(o, c, cndl.hi), lo = Math.min(o, c, cndl.lo);
+        const x = (i + 1.2) * cw;
+        const yHi = (1 - hi) * H * 0.72 + H * 0.20;
+        const yLo = (1 - lo) * H * 0.72 + H * 0.20;
+        const yO = (1 - o) * H * 0.72 + H * 0.20;
+        const yC = (1 - c) * H * 0.72 + H * 0.20;
+        const bull = c >= o;
+        ctx.strokeStyle = bull ? '#39ff87' : '#ff5d7a';
+        ctx.lineWidth = Math.max(1, 1 * fit);
+        ctx.beginPath(); ctx.moveTo(x, yHi); ctx.lineTo(x, yLo); ctx.stroke();
+        const bodyTop = Math.min(yO, yC), bodyH = Math.max(1.8 * fit, Math.abs(yC - yO));
+        ctx.fillStyle = bull ? '#39ff87' : '#ff5d7a';
+        ctx.fillRect(x - cw * 0.28, bodyTop, cw * 0.56, bodyH);
+      }
+
+      // clean backdrop behind top-left text so candles never make text muddy
+      ctx.fillStyle = 'rgba(3,6,11,0.78)';
+      ctx.fillRect(3 * fit, 3 * fit, Math.min(W - 6 * fit, 98 * fit), Math.min(H - 6 * fit, 32 * fit));
+
+      ctx.fillStyle = '#e8fff4';
+      ctx.font = `800 ${Math.max(6.5, 7.8 * fit)}px monospace`;
+      ctx.textAlign = 'left';
+      ctx.fillText(slug, 6 * fit, 11.5 * fit);
+
+      ctx.fillStyle = pnl >= 0 ? '#39ff87' : '#ff5d7a';
+      ctx.font = `800 ${Math.max(7.5, 9.5 * fit)}px monospace`;
+      const pnlTxt = (pnl >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+      ctx.fillText(pnlTxt, 6 * fit, 22 * fit);
+
+      ctx.fillStyle = 'rgba(190,210,230,0.82)';
+      ctx.font = `600 ${Math.max(5.5, 6.4 * fit)}px monospace`;
+      ctx.fillText((pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2) + ' PAPER', 6 * fit, 31 * fit);
+    });
+
+    // 3) Right back-wall screen: FLOW + PAPER rules (unified so nothing clips or overlaps)
+    drawBackWallScreen(5.72, 7.62, 0.58, 2.18, hexA('#ff4dcf', 0.60), (W, H) => {
+      ctx.fillStyle = '#ff4dcf';
+      ctx.font = `700 ${Math.max(6, 6.8 * fit)}px monospace`;
+      ctx.textAlign = 'left';
+      ctx.fillText('FLOW', 5 * fit, 10 * fit);
+
+      // left half: flow bars
+      const flowW = W * 0.46;
+      const nBars = 6;
+      const bw = Math.max(2 * fit, (flowW - 8 * fit) / (nBars * 1.55));
+      for (let k = 0; k < nBars; k++) {
+        const u = (k + 0.5) / nBars;
+        const x = 5 * fit + (flowW - 8 * fit) * u;
+        const hgt = (0.22 + 0.52 * (0.5 + 0.5 * Math.sin(t * 1.9 + k * 0.8 + 1))) * (H - 16 * fit);
+        ctx.fillStyle = Math.sin(t + k + 1) >= 0 ? '#ff4dcf' : '#4de0ff';
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(x - bw * 0.5, H - 4 * fit - hgt, bw, hgt);
+      }
+      ctx.globalAlpha = 1;
+
+      // divider
+      ctx.strokeStyle = 'rgba(57,255,135,0.22)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.50, 4 * fit);
+      ctx.lineTo(W * 0.50, H - 4 * fit);
+      ctx.stroke();
+
+      // right half: paper rules
+      const rules = isZh()
+        ? ['紙上規則', '僅模擬', '無金鑰', '無下單']
+        : ['6 RULES', 'PAPER', 'NO KEYS', 'NO CLOB'];
+      ctx.font = `700 ${Math.max(5.2, 5.8 * fit)}px monospace`;
+      rules.forEach((line, idx) => {
+        ctx.fillStyle = idx === 0 ? '#39ff87' : 'rgba(200,216,234,0.82)';
+        ctx.fillText(line, W * 0.54, (10 + idx * 7.2) * fit);
+      });
     });
   }
 
   function drawDesk(ax, ay, col, id) {
-    // legs hint
-    box(ax + 0.08, ay + 0.08, 0.18, 0.18, 0.52, '#1a2230', '#10161e', '#0c1218', 'rgba(0,0,0,0)');
-    box(ax + 1.25, ay + 0.08, 0.18, 0.18, 0.52, '#1a2230', '#10161e', '#0c1218', 'rgba(0,0,0,0)');
-    // desk top
-    box(ax, ay, 1.55, 0.95, 0.55, '#2a3648', '#171e2a', '#111722', hexA(col, 0.28));
+    // legs
+    box(ax + 0.08, ay + 0.08, 0.16, 0.16, 0.46, '#1a2230', '#10161e', '#0c1218', 'rgba(0,0,0,0)');
+    box(ax + 1.24, ay + 0.08, 0.16, 0.16, 0.46, '#1a2230', '#10161e', '#0c1218', 'rgba(0,0,0,0)');
+    // desk surface
+    box(ax, ay, 1.50, 0.90, 0.50, '#2a3648', '#171e2a', '#111722', hexA(col, 0.32));
     // keyboard
-    box(ax + 0.35, ay + 0.45, 0.7, 0.32, 0.04, '#1a222e', '#121820', '#0e141c', 'rgba(255,255,255,0.05)');
+    box(ax + 0.34, ay + 0.44, 0.66, 0.28, 0.54, '#1a222e', '#121820', '#0e141c', 'rgba(255,255,255,0.06)');
     // glowing mouse
-    const mp = worldToScreen(ax + 1.2, ay + 0.62, 0.58);
-    ctx.fillStyle = hexA(col, 0.9);
-    ctx.beginPath(); ctx.ellipse(mp.x, mp.y, 4 * dpr, 2.5 * dpr, 0.3, 0, 7); ctx.fill();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = hexA(col, 0.25);
-    ctx.beginPath(); ctx.arc(mp.x, mp.y, 8 * dpr, 0, 7); ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
+    const mp = worldToScreen(ax + 1.16, ay + 0.58, 0.54);
+    ctx.fillStyle = hexA(col, 0.92);
+    ctx.beginPath(); ctx.ellipse(mp.x, mp.y, 3.2 * fit, 2.0 * fit, 0.3, 0, 7); ctx.fill();
 
-    // dual-ish monitor (main + thin secondary)
-    box(ax + 0.22, ay + 0.1, 0.95, 0.12, 0.98, '#0c121c', '#070b12', '#090e16', hexA(col, 0.35));
-    const s0 = worldToScreen(ax + 0.3, ay + 0.14, 0.65);
-    const s1 = worldToScreen(ax + 1.08, ay + 0.14, 0.65);
-    const s2 = worldToScreen(ax + 1.08, ay + 0.14, 1.4);
-    const s3 = worldToScreen(ax + 0.3, ay + 0.14, 1.4);
-    ctx.beginPath(); ctx.moveTo(s3.x, s3.y); ctx.lineTo(s2.x, s2.y); ctx.lineTo(s1.x, s1.y); ctx.lineTo(s0.x, s0.y); ctx.closePath();
+    // monitor housing on desk
+    box(ax + 0.22, ay + 0.10, 0.92, 0.12, 1.12, '#0c121c', '#070b12', '#090e16', hexA(col, 0.38));
+    const s0 = worldToScreen(ax + 0.28, ay + 0.23, 0.58);
+    const s1 = worldToScreen(ax + 1.08, ay + 0.23, 0.58);
+    const s2 = worldToScreen(ax + 1.08, ay + 0.23, 1.08);
+    const s3 = worldToScreen(ax + 0.28, ay + 0.23, 1.08);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(s3.x, s3.y); ctx.lineTo(s2.x, s2.y); ctx.lineTo(s1.x, s1.y); ctx.lineTo(s0.x, s0.y);
+    ctx.closePath();
     ctx.fillStyle = '#050a10'; ctx.fill();
-    ctx.strokeStyle = hexA(col, 0.7); ctx.lineWidth = 1 * dpr; ctx.stroke();
-    // screen content: bars + line
+    ctx.strokeStyle = hexA(col, 0.72); ctx.lineWidth = 1 * dpr; ctx.stroke();
+    ctx.clip();
+
+    // screen wave interpolated along isometric monitor slope
     const ag = (state.agents || {})[id] || {};
     const active = String(ag.status || '').toUpperCase() === 'RUNNING';
+    const mH = s0.y - s3.y;
     ctx.strokeStyle = active ? col : '#cfe8ff';
-    ctx.lineWidth = 1.3 * dpr; ctx.beginPath();
-    for (let i = 0; i < 14; i++) {
-      const u = i / 13;
+    ctx.lineWidth = Math.max(1, 1.2 * fit);
+    ctx.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const u = i / 11;
       const x = s3.x + (s2.x - s3.x) * u;
-      const y = s3.y + (s0.y - s3.y) * (0.5 + 0.28 * Math.sin(performance.now() / 380 + i * 0.55 + ax * 2));
+      const topY = s3.y + (s2.y - s3.y) * u;
+      const y = topY + mH * (0.52 + 0.26 * Math.sin(performance.now() / 380 + i * 0.55 + ax * 2));
       i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     }
     ctx.stroke();
-    for (let i = 0; i < 6; i++) {
-      const u = (i + 0.5) / 6;
-      const x = s3.x + (s2.x - s3.x) * u;
-      const bh = (s0.y - s3.y) * (0.15 + 0.25 * Math.abs(Math.sin(performance.now() / 500 + i + ay)));
-      ctx.fillStyle = hexA(col, 0.45);
-      ctx.fillRect(x - 2 * dpr, s0.y - bh - 4 * dpr, 4 * dpr, bh);
-    }
-    // role chip on screen
-    ctx.fillStyle = col;
-    ctx.font = `700 ${6.5 * dpr}px monospace`;
-    ctx.textAlign = 'left';
-    ctx.fillText(id, s3.x + 4 * dpr, s3.y + 10 * dpr);
+    ctx.restore();
 
-    // chair
-    box(ax + 0.48, ay + 1.12, 0.55, 0.48, 0.42, '#222a36', '#141a24', '#0e131c');
-    box(ax + 0.48, ay + 1.12, 0.55, 0.12, 0.72, '#2a3342', '#181e28', '#121820'); // back
+    // chair in front of desk
+    box(ax + 0.46, ay + 1.02, 0.52, 0.44, 0.36, '#222a36', '#141a24', '#0e131c');
+    box(ax + 0.46, ay + 1.02, 0.52, 0.12, 0.62, '#2a3342', '#181e28', '#121820');
 
-    // name plate on desk front
-    label(ax + 0.75, ay + 0.55, 0.62, id, col, { size: 7 });
-
-    const c = worldToScreen(ax + 0.75, ay + 0.55, 1.0);
-    hits.push({ id, x: c.x, y: c.y, r: 46 * dpr });
+    const c = worldToScreen(ax + 0.75, ay + 0.55, 0.8);
+    hits.push({ id, x: c.x, y: c.y, r: 42 * fit });
   }
 
   function drawPlant(x, y) {
@@ -386,153 +385,117 @@
     const p = worldToScreen(x + 0.16, y + 0.16, 0.28);
     for (let i = 0; i < 6; i++) {
       const a = -Math.PI / 2 + (i - 2.5) * 0.38;
-      const g = ctx.createLinearGradient(p.x, p.y, p.x, p.y - 18 * dpr);
+      const g = ctx.createLinearGradient(p.x, p.y, p.x, p.y - 15 * fit);
       g.addColorStop(0, '#1a5c34'); g.addColorStop(1, '#3dff8a');
       ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.ellipse(p.x + Math.cos(a) * 7 * dpr, p.y - 12 * dpr + Math.sin(a) * 2 * dpr, 4.5 * dpr, 11 * dpr, a, 0, 7);
+      ctx.ellipse(p.x + Math.cos(a) * 5.5 * fit, p.y - 9.5 * fit + Math.sin(a) * 1.8 * fit, 3.6 * fit, 8.8 * fit, a, 0, 7);
       ctx.fill();
     }
   }
 
   function drawSofa(x, y) {
-    // base
-    box(x, y, 1.9, 0.75, 0.38, '#1e2530', '#131820', '#0e131a');
-    // seat cushions
-    box(x + 0.08, y + 0.08, 0.85, 0.55, 0.48, '#2a3340', '#1a222c', '#141a22', 'rgba(100,120,150,0.2)');
-    box(x + 0.98, y + 0.08, 0.85, 0.55, 0.48, '#2a3340', '#1a222c', '#141a22', 'rgba(100,120,150,0.2)');
-    // back
-    box(x, y, 1.9, 0.18, 0.78, '#262e3a', '#161c26', '#10151c');
-    // arms
-    box(x - 0.08, y, 0.14, 0.75, 0.55, '#222833', '#141a22', '#10151c');
-    box(x + 1.84, y, 0.14, 0.75, 0.55, '#222833', '#141a22', '#10151c');
-    // coffee table
-    box(x + 0.55, y + 1.05, 0.8, 0.5, 0.26, '#3a2c1e', '#241810', '#1a120c', 'rgba(255,180,80,0.15)');
-    // mug
-    const mug = worldToScreen(x + 0.85, y + 1.25, 0.32);
+    box(x, y, 1.75, 0.68, 0.34, '#1e2530', '#131820', '#0e131a');
+    box(x + 0.08, y + 0.08, 0.78, 0.50, 0.42, '#2a3340', '#1a222c', '#141a22', 'rgba(100,120,150,0.2)');
+    box(x + 0.90, y + 0.08, 0.78, 0.50, 0.42, '#2a3340', '#1a222c', '#141a22', 'rgba(100,120,150,0.2)');
+    box(x, y, 1.75, 0.16, 0.68, '#262e3a', '#161c26', '#10151c');
+    box(x + 0.48, y + 0.96, 0.75, 0.44, 0.24, '#3a2c1e', '#241810', '#1a120c', 'rgba(255,180,80,0.15)');
+    const mug = worldToScreen(x + 0.78, y + 1.15, 0.28);
     ctx.fillStyle = '#e8eef5';
-    ctx.beginPath(); ctx.ellipse(mug.x, mug.y, 3.5 * dpr, 2.2 * dpr, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(mug.x, mug.y, 2.8 * fit, 1.8 * fit, 0, 0, 7); ctx.fill();
     ctx.fillStyle = '#39ff87';
-    ctx.beginPath(); ctx.ellipse(mug.x, mug.y, 2 * dpr, 1.2 * dpr, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(mug.x, mug.y, 1.6 * fit, 1.0 * fit, 0, 0, 7); ctx.fill();
   }
 
   function drawRocket(x, y, t) {
-    box(x, y, 0.55, 0.55, 0.22, '#2a3038', '#161a20', '#0e1216');
-    // pedestal ring
-    const ring = worldToScreen(x + 0.27, y + 0.27, 0.24);
-    ctx.strokeStyle = 'rgba(255,138,61,0.55)'; ctx.lineWidth = 1.5 * dpr;
-    ctx.beginPath(); ctx.ellipse(ring.x, ring.y, 12 * dpr, 5 * dpr, 0, 0, 7); ctx.stroke();
-    const bob = 0.06 * Math.sin(t * 2.2);
-    const tip = worldToScreen(x + 0.27, y + 0.27, 1.65 + bob);
-    const mid = worldToScreen(x + 0.27, y + 0.27, 0.42);
+    box(x, y, 0.50, 0.50, 0.20, '#2a3038', '#161a20', '#0e1216');
+    const ring = worldToScreen(x + 0.25, y + 0.25, 0.22);
+    ctx.strokeStyle = 'rgba(255,138,61,0.55)'; ctx.lineWidth = 1.2 * dpr;
+    ctx.beginPath(); ctx.ellipse(ring.x, ring.y, 9.5 * fit, 4 * fit, 0, 0, 7); ctx.stroke();
+    const bob = 0.05 * Math.sin(t * 2.2);
+    const tip = worldToScreen(x + 0.25, y + 0.25, 1.28 + bob);
+    const mid = worldToScreen(x + 0.25, y + 0.25, 0.36);
     const bodyG = ctx.createLinearGradient(mid.x, tip.y, mid.x, mid.y);
     bodyG.addColorStop(0, '#ffffff'); bodyG.addColorStop(1, '#9aa8bc');
     ctx.fillStyle = bodyG;
     ctx.beginPath();
     ctx.moveTo(tip.x, tip.y);
-    ctx.lineTo(mid.x - 9 * dpr, mid.y);
-    ctx.lineTo(mid.x + 9 * dpr, mid.y);
+    ctx.lineTo(mid.x - 7 * fit, mid.y);
+    ctx.lineTo(mid.x + 7 * fit, mid.y);
     ctx.closePath(); ctx.fill();
-    // window
     ctx.fillStyle = '#4de0ff';
-    ctx.beginPath(); ctx.arc(mid.x, (tip.y + mid.y) * 0.55, 3 * dpr, 0, 7); ctx.fill();
-    // fins
+    ctx.beginPath(); ctx.arc(mid.x, (tip.y + mid.y) * 0.55, 2.4 * fit, 0, 7); ctx.fill();
     ctx.fillStyle = '#ff4d6d';
-    ctx.beginPath(); ctx.moveTo(mid.x - 9 * dpr, mid.y); ctx.lineTo(mid.x - 14 * dpr, mid.y + 12 * dpr); ctx.lineTo(mid.x - 2 * dpr, mid.y); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(mid.x + 9 * dpr, mid.y); ctx.lineTo(mid.x + 14 * dpr, mid.y + 12 * dpr); ctx.lineTo(mid.x + 2 * dpr, mid.y); ctx.fill();
-    // flame
-    const flick = 4 * Math.sin(t * 14) * dpr;
+    ctx.beginPath(); ctx.moveTo(mid.x - 7 * fit, mid.y); ctx.lineTo(mid.x - 11 * fit, mid.y + 9 * fit); ctx.lineTo(mid.x - 2 * fit, mid.y); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(mid.x + 7 * fit, mid.y); ctx.lineTo(mid.x + 11 * fit, mid.y + 9 * fit); ctx.lineTo(mid.x + 2 * fit, mid.y); ctx.fill();
+    const flick = 3 * Math.sin(t * 14) * fit;
     ctx.fillStyle = rgba(255, 180, 40, 0.75 + 0.25 * Math.sin(t * 10));
     ctx.beginPath();
-    ctx.moveTo(mid.x - 5 * dpr, mid.y + 2 * dpr);
-    ctx.lineTo(mid.x, mid.y + 16 * dpr + flick);
-    ctx.lineTo(mid.x + 5 * dpr, mid.y + 2 * dpr);
+    ctx.moveTo(mid.x - 4 * fit, mid.y + 1.5 * fit);
+    ctx.lineTo(mid.x, mid.y + 11 * fit + flick);
+    ctx.lineTo(mid.x + 4 * fit, mid.y + 1.5 * fit);
     ctx.fill();
-    if (showDecorLabels()) label(x + 0.27, y + 0.27, 1.95 + bob, isZh() ? '頂尖跑者' : 'TOP RUNNER', '#ff8a3d', { size: 6.5 });
   }
 
   function drawRadar(x, y, t) {
-    box(x, y, 0.58, 0.58, 0.28, '#1c2430', '#10161e', '#0c1218');
-    const pole = worldToScreen(x + 0.29, y + 0.29, 0.9);
-    ctx.strokeStyle = 'rgba(160,180,200,0.7)'; ctx.lineWidth = 2 * dpr;
-    ctx.beginPath(); ctx.moveTo(pole.x, pole.y + 8 * dpr); ctx.lineTo(pole.x, pole.y - 4 * dpr); ctx.stroke();
+    box(x, y, 0.52, 0.52, 0.26, '#1c2430', '#10161e', '#0c1218');
+    const pole = worldToScreen(x + 0.26, y + 0.26, 0.72);
+    ctx.strokeStyle = 'rgba(160,180,200,0.7)'; ctx.lineWidth = 1.6 * dpr;
+    ctx.beginPath(); ctx.moveTo(pole.x, pole.y + 7 * fit); ctx.lineTo(pole.x, pole.y - 3 * fit); ctx.stroke();
     ctx.save();
-    ctx.translate(pole.x, pole.y - 2 * dpr);
+    ctx.translate(pole.x, pole.y - 2 * fit);
     ctx.rotate(t * 1.35);
-    // dish
     ctx.fillStyle = 'rgba(210,225,240,0.9)';
-    ctx.beginPath(); ctx.ellipse(0, 0, 16 * dpr, 7 * dpr, 0.15, 0, 7); ctx.fill();
-    ctx.strokeStyle = '#4de0ff'; ctx.lineWidth = 1.5 * dpr;
-    ctx.beginPath(); ctx.ellipse(0, 0, 16 * dpr, 7 * dpr, 0.15, 0, 7); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(20 * dpr, -2 * dpr); ctx.stroke();
-    // sweep
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 20 * dpr);
-    g.addColorStop(0, 'rgba(77,224,255,0.4)'); g.addColorStop(1, 'rgba(77,224,255,0)');
+    ctx.beginPath(); ctx.ellipse(0, 0, 12.5 * fit, 5.5 * fit, 0.15, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#4de0ff'; ctx.lineWidth = 1.2 * dpr;
+    ctx.beginPath(); ctx.ellipse(0, 0, 12.5 * fit, 5.5 * fit, 0.15, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(15 * fit, -1.5 * fit); ctx.stroke();
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 15 * fit);
+    g.addColorStop(0, 'rgba(77,224,255,0.38)'); g.addColorStop(1, 'rgba(77,224,255,0)');
     ctx.fillStyle = g;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 20 * dpr, -0.45, 0.45); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 15 * fit, -0.45, 0.45); ctx.fill();
     ctx.restore();
-    // range rings on floor projection
-    ctx.strokeStyle = 'rgba(77,224,255,0.22)'; ctx.lineWidth = 1 * dpr;
-    for (const r of [10, 16]) {
-      ctx.beginPath(); ctx.ellipse(pole.x, pole.y + 14 * dpr, r * dpr, r * 0.35 * dpr, 0, 0, 7); ctx.stroke();
-    }
-    if (showDecorLabels()) label(x + 0.29, y + 0.29, 1.4, isZh() ? '巨鯨雷達' : 'WHALE RADAR', '#4de0ff', { size: 6.5 });
   }
 
   function drawTrash(x, y) {
-    box(x, y, 0.42, 0.42, 0.58, '#323842', '#1e242c', '#151a20', 'rgba(255,200,87,0.25)');
-    // rim
-    const rim = worldToScreen(x + 0.21, y + 0.21, 0.58);
-    ctx.strokeStyle = '#ffc857'; ctx.lineWidth = 1.5 * dpr;
-    ctx.beginPath(); ctx.ellipse(rim.x, rim.y, 9 * dpr, 4 * dpr, 0, 0, 7); ctx.stroke();
-    if (showDecorLabels()) label(x + 0.21, y + 0.21, 0.9, isZh() ? '紙手' : 'PAPER HANDS', '#ffc857', { size: 6 });
+    box(x, y, 0.38, 0.38, 0.48, '#323842', '#1e242c', '#151a20', 'rgba(255,200,87,0.25)');
+    const rim = worldToScreen(x + 0.19, y + 0.19, 0.48);
+    ctx.strokeStyle = '#ffc857'; ctx.lineWidth = 1.2 * dpr;
+    ctx.beginPath(); ctx.ellipse(rim.x, rim.y, 7 * fit, 3.2 * fit, 0, 0, 7); ctx.stroke();
   }
 
   function drawServer(x, y, t) {
-    box(x, y, 0.72, 0.62, 1.45, '#1c2230', '#10161e', '#0c1218');
-    for (let row = 0; row < 6; row++) {
-      const zy = 0.25 + row * 0.2;
-      const pL = worldToScreen(x + 0.08, y + 0.08, zy);
-      const pR = worldToScreen(x + 0.64, y + 0.08, zy);
-      ctx.fillStyle = 'rgba(20,28,40,0.9)';
-      ctx.fillRect(pL.x, pL.y - 3 * dpr, pR.x - pL.x, 6 * dpr);
+    box(x, y, 0.66, 0.56, 1.18, '#1c2230', '#10161e', '#0c1218');
+    for (let row = 0; row < 5; row++) {
+      const zy = 0.22 + row * 0.18;
+      const pL = worldToScreen(x + 0.08, y + 0.56, zy);
+      const pR = worldToScreen(x + 0.58, y + 0.56, zy);
       for (let i = 0; i < 4; i++) {
+        const u = (i + 0.5) / 4;
+        const lx = pL.x + (pR.x - pL.x) * u;
+        const ly = pL.y + (pR.y - pL.y) * u;
         const on = Math.sin(t * 4 + row * 1.3 + i * 2.1) > 0.15;
         ctx.fillStyle = on ? (i % 2 ? '#39ff87' : '#4de0ff') : '#1a2430';
-        ctx.fillRect(pL.x + 4 * dpr + i * 7 * dpr, pL.y - 2 * dpr, 5 * dpr, 3 * dpr);
+        ctx.fillRect(lx - 1.8 * fit, ly - 1.2 * fit, 3.6 * fit, 2.2 * fit);
       }
     }
-    if (showDecorLabels()) label(x + 0.36, y + 0.3, 1.6, 'pump.fun', '#39ff87', { size: 6.5 });
   }
 
   function drawHeadOfFloor(x, y, t) {
-    box(x, y, 1.25, 0.85, 0.52, '#1e2836', '#121820', '#0e141c');
-    // mini monitor on desk
-    box(x + 0.15, y + 0.1, 0.55, 0.1, 0.55, '#0c121c', '#070b12', '#090e16');
-    const p = worldToScreen(x + 0.85, y + 0.45, 1.15);
-    // TV / sphere head
+    box(x, y, 0.95, 0.72, 0.46, '#1e2836', '#121820', '#0e141c');
+    box(x + 0.14, y + 0.10, 0.45, 0.10, 0.86, '#0c121c', '#070b12', '#090e16');
+    const p = worldToScreen(x + 0.65, y + 0.42, 0.92);
+    const hw = 11 * fit, hh = 9.5 * fit;
     ctx.fillStyle = '#eef2f8';
-    ctx.beginPath(); ctx.roundRect(p.x - 15 * dpr, p.y - 18 * dpr, 30 * dpr, 26 * dpr, 5 * dpr); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(p.x - hw, p.y - hh, hw * 2, hh * 1.85, 3.8 * fit); ctx.fill();
     ctx.fillStyle = '#06080e';
-    ctx.fillRect(p.x - 11 * dpr, p.y - 12 * dpr, 22 * dpr, 13 * dpr);
+    ctx.fillRect(p.x - hw * 0.74, p.y - hh * 0.65, hw * 1.48, hh * 0.98);
     const blink = ((t * 0.7) % 5) < 0.12 ? 0.2 : 1;
     ctx.fillStyle = '#39ff87';
-    ctx.beginPath(); ctx.ellipse(p.x - 5 * dpr, p.y - 6 * dpr, 2.2 * dpr, 3 * dpr * blink, 0, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(p.x + 5 * dpr, p.y - 6 * dpr, 2.2 * dpr, 3 * dpr * blink, 0, 0, 7); ctx.fill();
-    // headset
-    ctx.strokeStyle = 'rgba(190,210,230,0.85)'; ctx.lineWidth = 2.2 * dpr;
-    ctx.beginPath(); ctx.arc(p.x, p.y - 8 * dpr, 17 * dpr, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
-    ctx.fillStyle = 'rgba(200,215,230,0.9)';
-    ctx.beginPath(); ctx.ellipse(p.x - 16 * dpr, p.y - 2 * dpr, 4 * dpr, 5 * dpr, 0, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(p.x + 16 * dpr, p.y - 2 * dpr, 4 * dpr, 5 * dpr, 0, 0, 7); ctx.fill();
-    // local clock
-    const now = new Date();
-    const hh = String(now.getUTCHours()).padStart(2, '0');
-    const mm = String(now.getUTCMinutes()).padStart(2, '0');
-    if (showDecorLabels()) {
-      label(x + 0.6, y + 0.4, 1.65, isZh() ? '場地板手' : 'HEAD OF FLOOR', '#9ab0c4', { size: 6.2 });
-      chip(p.x, p.y + 18 * dpr, hh + ':' + mm + ' UTC', '#39ff87', { size: 6.5 });
-    }
+    ctx.beginPath(); ctx.ellipse(p.x - 3.6 * fit, p.y - 2.2 * fit, 1.7 * fit, 2.3 * fit * blink, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x + 3.6 * fit, p.y - 2.2 * fit, 1.7 * fit, 2.3 * fit * blink, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(190,210,230,0.85)'; ctx.lineWidth = 1.6 * dpr;
+    ctx.beginPath(); ctx.arc(p.x, p.y - 3 * fit, 12.5 * fit, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
   }
 
   function drawGhost(agent, t) {
@@ -540,22 +503,21 @@
     const st = (ag.status || 'QUEUED').toUpperCase();
     const detail = String(ag.detail || '').trim();
     const active = st === 'RUNNING';
-    const bob = Math.sin(t * 2.2 + agent.phase) * 0.18 + Math.sin(t * 3.5 + agent.phase * 1.3) * 0.06;
-    const gx = agent.desk[0] + 0.75 + Math.sin(t * 0.4 + agent.phase) * 0.08;
-    const gy = agent.desk[1] + 1.55;
-    const gz = 0.95 + bob + (active ? 0.08 : 0);
+    const bob = Math.sin(t * 2.2 + agent.phase) * 0.08 + Math.sin(t * 3.5 + agent.phase * 1.3) * 0.03;
+    const gx = agent.desk[0] + 0.75 + Math.sin(t * 0.4 + agent.phase) * 0.05;
+    const gy = agent.desk[1] + 1.38;
+    const gz = 0.78 + bob + (active ? 0.06 : 0);
     const p = worldToScreen(gx, gy, gz);
-    const s = (active ? 15 : 13) * dpr;
+    const s = (active ? 13.5 : 12) * fit;
 
-    const sh = worldToScreen(gx, gy, 0);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath(); ctx.ellipse(sh.x, sh.y, s * 0.7, s * 0.28, 0, 0, 7); ctx.fill();
+    const sh = worldToScreen(gx, gy, 0.02);
+    ctx.fillStyle = 'rgba(0,0,0,0.38)';
+    ctx.beginPath(); ctx.ellipse(sh.x, sh.y, s * 0.72, s * 0.28, 0, 0, 7); ctx.fill();
 
     ctx.globalCompositeOperation = 'lighter';
-    /* mind30: smaller aura — stay inside floor-stage clip, no chrome wash */
-    const glowR = s * 1.55;
+    const glowR = s * 1.45;
     const g = ctx.createRadialGradient(p.x, p.y, s * 0.2, p.x, p.y, glowR);
-    g.addColorStop(0, hexA(agent.color, active ? 0.42 : 0.22));
+    g.addColorStop(0, hexA(agent.color, active ? 0.38 : 0.20));
     g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, glowR, 0, 7); ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
@@ -577,11 +539,11 @@
       ctx.lineTo(fx, fy);
     }
     ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = rgba(255, 255, 255, 0.22); ctx.lineWidth = 1 * dpr; ctx.stroke();
+    ctx.strokeStyle = rgba(255, 255, 255, 0.24); ctx.lineWidth = 1 * dpr; ctx.stroke();
 
-    ctx.strokeStyle = 'rgba(230,240,255,0.75)'; ctx.lineWidth = 1.8 * dpr;
+    ctx.strokeStyle = 'rgba(230,240,255,0.78)'; ctx.lineWidth = 1.5 * dpr;
     ctx.beginPath(); ctx.arc(p.x, p.y - s * 0.15, s * 0.95, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
-    ctx.fillStyle = 'rgba(220,230,245,0.85)';
+    ctx.fillStyle = 'rgba(220,230,245,0.88)';
     ctx.beginPath(); ctx.ellipse(p.x - s * 0.95, p.y + s * 0.05, s * 0.22, s * 0.28, 0, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.ellipse(p.x + s * 0.95, p.y + s * 0.05, s * 0.22, s * 0.28, 0, 0, 7); ctx.fill();
 
@@ -593,29 +555,27 @@
       ctx.fill();
     }
 
-    let bubble = detail ? detail.slice(0, 18) : '';
+    let bubble = detail ? detail.slice(0, 14) : '';
     if (!bubble) {
-      if (st === 'RUNNING') bubble = i18n('bubble_trade', 'in a trade');
-      else if (st === 'DONE') bubble = i18n('bubble_holding', 'holding');
-      else bubble = i18n('bubble_standby', 'standby');
+      if (st === 'RUNNING') bubble = i18n('bubble_trade', 'LIVE');
+      else if (st === 'DONE') bubble = i18n('bubble_holding', 'READY');
+      else bubble = i18n('bubble_standby', 'STANDBY');
     }
     bubble = isZh() ? bubble : bubble.toUpperCase();
-    /* mind31: shorter primary tag; name only for RUNNING to cut clutter */
     const prio = st === 'RUNNING' ? 3 : (st === 'DONE' ? 2 : 1);
-    const primary = (prio >= 2 ? (agent.id + ' · ' + bubble) : bubble).slice(0, 22);
-    const secondary = bubble.slice(0, 14);
+    const primary = `${agent.id} · ${bubble}`.slice(0, 20);
     labelSlots.push({
       id: agent.id,
       color: agent.color,
       prio,
       primary,
-      secondary,
+      secondary: agent.id,
       ax: p.x,
-      ay: p.y - s * 1.85,
+      ay: p.y - s * 1.68,
       ghostR: s,
     });
 
-    hits.push({ id: agent.id, x: p.x, y: p.y, r: Math.max(s * 1.7, 28 * dpr) });
+    hits.push({ id: agent.id, x: p.x, y: p.y, r: Math.max(s * 1.8, 28 * dpr) });
   }
 
   function rectsOverlap(a, b, pad) {
@@ -623,134 +583,120 @@
   }
 
   function drawGhostLabels() {
-    /* mind32: denser avoid — prefer above ghosts; drop standby on dense layouts */
-    const dense = isDense();
-    const slots = labelSlots.slice()
-      .filter(s => !dense || s.prio >= 2)
-      .sort((a, b) => b.prio - a.prio || a.id.localeCompare(b.id));
+    // One crisp badge per agent ghost (all 6 shown, zero duplicate desk/prop pills)
+    const slots = labelSlots.slice().sort((a, b) => b.prio - a.prio || a.id.localeCompare(b.id));
     const placed = [];
     const phone = canvas.width < 520 * dpr;
-    const fs = (dense ? 5.2 : (phone ? 5.4 : 5.8)) * dpr;
-    const padX = 5 * dpr, padY = 2.6 * dpr;
+    const fs = Math.max(6.2 * dpr, Math.min(8.2 * dpr, 6.8 * fit));
+    const padX = 5.5 * dpr, padY = 2.8 * dpr;
     const th = fs + padY * 2;
-    const hudReserve = 28 * dpr; /* keep clear of top stage HUD */
-    const offsets = dense
-      ? [
-          [0, -8 * dpr], [0, -22 * dpr], [0, -36 * dpr],
-          [-26 * dpr, -18 * dpr], [26 * dpr, -18 * dpr],
-          [-34 * dpr, -6 * dpr], [34 * dpr, -6 * dpr],
-        ]
-      : [
-          [0, 0], [0, -16 * dpr], [0, -28 * dpr],
-          [-22 * dpr, -10 * dpr], [22 * dpr, -10 * dpr],
-          [0, 14 * dpr], [-30 * dpr, 6 * dpr], [30 * dpr, 6 * dpr],
-        ];
+    const hudReserve = 26 * dpr;
+    const offsets = [
+      [0, 0],
+      [0, -12 * dpr],
+      [-18 * dpr, -6 * dpr],
+      [18 * dpr, -6 * dpr],
+      [0, -24 * dpr],
+    ];
 
     for (const slot of slots) {
-      let text = dense ? (slot.prio >= 3 ? slot.primary.slice(0, 16) : slot.id) : slot.primary;
+      let text = phone ? slot.secondary : slot.primary;
       ctx.font = `700 ${fs}px monospace`;
       ctx.textAlign = 'center';
-      let tw = Math.min(ctx.measureText(text).width + padX * 2, (phone || dense ? 100 : 128) * dpr);
-      let chosen = null;
+      const maxW = (phone ? 86 : 132) * dpr;
       const tryPlace = (t) => {
-        tw = Math.min(ctx.measureText(t).width + padX * 2, (phone || dense ? 100 : 128) * dpr);
+        const tw = Math.min(ctx.measureText(t).width + padX * 2, maxW);
         for (const [dx, dy] of offsets) {
           const x = slot.ax + dx - tw / 2;
           const y = slot.ay + dy - th / 2;
           if (y < hudReserve) continue;
-          if (x < 4 * dpr || x + tw > canvas.width - 4 * dpr) continue;
+          if (x < 6 * dpr || x + tw > canvas.width - 6 * dpr) continue;
           const rect = { x, y, w: tw, h: th };
           let hit = false;
           for (const p of placed) {
-            if (rectsOverlap(rect, p, 3 * dpr)) { hit = true; break; }
+            if (rectsOverlap(rect, p, 4 * dpr)) { hit = true; break; }
           }
           if (!hit) return { rect, text: t, cx: slot.ax + dx, cy: slot.ay + dy };
         }
         return null;
       };
-      chosen = tryPlace(text);
-      if (!chosen && !dense && slot.secondary !== text) {
-        text = slot.secondary;
-        chosen = tryPlace(text);
+      let chosen = tryPlace(text);
+      if (!chosen && text !== slot.secondary) {
+        chosen = tryPlace(slot.secondary);
       }
       if (!chosen) {
-        /* low-priority: drop; high: force short above ghost */
-        if (slot.prio < 3 && dense) continue;
-        if (slot.prio < 2) continue;
-        text = slot.id;
-        tw = Math.min(ctx.measureText(text).width + padX * 2, 72 * dpr);
-        const fy = Math.max(hudReserve + th / 2, slot.ay - 12 * dpr);
+        const tw = Math.min(ctx.measureText(slot.secondary).width + padX * 2, 72 * dpr);
+        const fy = Math.max(hudReserve + th / 2, slot.ay);
         chosen = {
           rect: { x: slot.ax - tw / 2, y: fy - th / 2, w: tw, h: th },
-          text,
+          text: slot.secondary,
           cx: slot.ax,
           cy: fy,
         };
       }
       placed.push(chosen.rect);
       const bx = chosen.rect.x, by = chosen.rect.y;
-      ctx.fillStyle = 'rgba(6,8,14,0.88)';
-      ctx.strokeStyle = hexA(slot.color, slot.prio >= 3 ? 0.9 : 0.65);
-      ctx.lineWidth = 1 * dpr;
-      ctx.beginPath(); ctx.roundRect(bx, by, chosen.rect.w, th, 2.5 * dpr); ctx.fill(); ctx.stroke();
-      /* pointer only when near default slot */
-      if (Math.abs(chosen.cx - slot.ax) < 4 * dpr && Math.abs(chosen.cy - slot.ay) < 6 * dpr) {
+      ctx.fillStyle = 'rgba(5,8,14,0.92)';
+      ctx.strokeStyle = hexA(slot.color, slot.prio >= 3 ? 0.95 : 0.78);
+      ctx.lineWidth = 1.1 * dpr;
+      ctx.beginPath(); ctx.roundRect(bx, by, chosen.rect.w, th, 3 * dpr); ctx.fill(); ctx.stroke();
+      if (Math.abs(chosen.cx - slot.ax) < 6 * dpr && Math.abs(chosen.cy - slot.ay) < 8 * dpr) {
         ctx.beginPath();
         ctx.moveTo(slot.ax - 3.5 * dpr, by + th);
-        ctx.lineTo(slot.ax, by + th + 5 * dpr);
+        ctx.lineTo(slot.ax, by + th + 4.5 * dpr);
         ctx.lineTo(slot.ax + 3.5 * dpr, by + th);
         ctx.closePath(); ctx.fill(); ctx.stroke();
       }
-      ctx.fillStyle = '#e8eefc';
-      ctx.fillText(chosen.text, chosen.cx, by + th * 0.72);
+      ctx.fillStyle = '#eef4ff';
+      ctx.fillText(chosen.text, chosen.cx, by + th * 0.71);
     }
   }
 
   function drawStageHud(t) {
-    /* mind32: screen-space status strip at TOP of stage — never over mid-floor ghosts */
-    const w = canvas.width, h = canvas.height;
+    const w = canvas.width;
     const barH = 18 * dpr;
-    const y0 = 6 * dpr;
+    const y0 = 5 * dpr;
     const slug = ((state.market || {}).slug || 'BTC-UPDOWN').toString().slice(0, 18).toUpperCase();
     const pnl = Number((state.portfolio || {}).pnl_total || 0);
     const eq = Number((state.portfolio || {}).equity || 10000);
     const pct = eq ? (pnl / Math.max(1, eq - pnl)) * 100 : 0;
-    const liveN = i18n('floor_live_n', '6 桌線上');
+    const liveN = i18n('floor_live_n', isZh() ? '6 桌線上' : '6 DESKS LIVE');
     const tick = `DESK · ${(pct >= 0 ? '+' : '')}${pct.toFixed(2)}% · ${liveN} · COINBASE LIVE · PAPER ONLY · ${slug} · `;
+    const verTxt = 'UI mind34';
+    const verW = 58 * dpr;
+
     ctx.save();
-    ctx.fillStyle = 'rgba(3,6,10,0.82)';
+    ctx.fillStyle = 'rgba(4,7,12,0.90)';
     ctx.fillRect(8 * dpr, y0, w - 16 * dpr, barH);
     ctx.strokeStyle = 'rgba(57,255,135,0.28)';
     ctx.lineWidth = 1 * dpr;
     ctx.strokeRect(8 * dpr, y0, w - 16 * dpr, barH);
+
+    // scrolling ticker on left
+    ctx.save();
     ctx.beginPath();
-    ctx.rect(10 * dpr, y0 + 1 * dpr, w - 20 * dpr, barH - 2 * dpr);
+    ctx.rect(10 * dpr, y0 + 1 * dpr, Math.max(40 * dpr, w - 22 * dpr - verW), barH - 2 * dpr);
     ctx.clip();
     ctx.fillStyle = '#39ff87';
     ctx.font = `700 ${7.5 * dpr}px monospace`;
     ctx.textAlign = 'left';
-    const scroll = ((t * 38) % 320);
-    ctx.fillText(tick + tick + tick, 14 * dpr - scroll, y0 + barH * 0.72);
+    const scroll = ((t * 36) % 340);
+    ctx.fillText(tick + tick + tick, 14 * dpr - scroll, y0 + barH * 0.71);
     ctx.restore();
-  }
 
-  function drawFloatingHints(t) {
-    // mind32: no ambient chips on dense / touch — they collide with ghosts
-    if (isDense()) return;
-    if (canvas.width < 520 * dpr && Math.sin(t * 0.5) < 0.35) return;
-    const hints = isZh()
-      ? [
-          [7.15, 4.55, 1.15, '紙上成交', '#ffc857'],
-          [3.9, 0.3, 2.35, '主螢幕', '#39ff87'],
-        ]
-      : [
-          [7.15, 4.55, 1.15, 'PAPER FILLS', '#ffc857'],
-          [3.9, 0.3, 2.35, 'MAIN SCREEN', '#39ff87'],
-        ];
-    hints.forEach((h, i) => {
-      if (Math.sin(t * 0.45 + i) < -0.15) return;
-      label(h[0], h[1], h[2], h[3], h[4], { size: 5.4, alpha: 0.4 });
-    });
+    // pinned version badge on right of HUD strip
+    const vx = w - 8 * dpr - verW;
+    ctx.fillStyle = 'rgba(10,16,26,0.96)';
+    ctx.fillRect(vx, y0 + 1 * dpr, verW - 1 * dpr, barH - 2 * dpr);
+    ctx.strokeStyle = 'rgba(77,224,255,0.35)';
+    ctx.beginPath();
+    ctx.moveTo(vx, y0); ctx.lineTo(vx, y0 + barH);
+    ctx.stroke();
+    ctx.fillStyle = '#4de0ff';
+    ctx.font = `700 ${7.2 * dpr}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText(verTxt, vx + verW * 0.5, y0 + barH * 0.71);
+    ctx.restore();
   }
 
   function frame(now) {
@@ -762,33 +708,32 @@
     hits = [];
     labelSlots = [];
     ctx.clearRect(0, 0, w, h);
-    const bg = ctx.createRadialGradient(w * 0.5, h * 0.28, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+    const bg = ctx.createRadialGradient(w * 0.5, h * 0.34, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
     bg.addColorStop(0, '#0b121a'); bg.addColorStop(1, '#030406');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
 
     drawRoom();
     drawWallScreens(t);
 
-    drawPlant(0.28, 4.85);
-    drawPlant(7.35, 0.35);
-    drawSofa(0.25, 4.05);
-    drawServer(7.0, 4.45, t);
-    drawRocket(7.1, 2.55, t);
-    drawRadar(0.22, 2.15, t);
-    drawTrash(6.95, 3.55);
-    drawHeadOfFloor(6.75, 0.75, t);
-    drawPlant(0.32, 0.45);
+    drawPlant(0.30, 0.45);
+    drawPlant(7.32, 0.35);
+    drawRadar(0.24, 2.15, t);
+    drawSofa(0.26, 4.00);
+    drawPlant(0.30, 5.10);
+    drawHeadOfFloor(6.82, 0.78, t);
+    drawRocket(7.12, 2.50, t);
+    drawTrash(7.05, 3.55);
+    drawServer(7.02, 4.45, t);
 
     AGENTS.forEach(a => drawDesk(a.desk[0], a.desk[1], a.color, a.id));
     const order = AGENTS.slice().sort((a, b) => (a.desk[0] + a.desk[1]) - (b.desk[0] + b.desk[1]));
     order.forEach(a => drawGhost(a, t));
     drawGhostLabels();
-    drawFloatingHints(t);
-    drawStageHud(t); /* mind32: top strip last so it stays above floor clutter */
+    drawStageHud(t);
 
-    ctx.fillStyle = 'rgba(107,122,150,0.78)';
-    ctx.font = `600 ${8 * dpr}px monospace`; ctx.textAlign = 'center';
-    ctx.fillText(i18n('floor_cap', 'DESK FLOOR · CLICK A BOT / DESK → THE MIND · PAPER ONLY'), w / 2, h - 10 * dpr);
+    ctx.fillStyle = 'rgba(120,138,168,0.82)';
+    ctx.font = `600 ${7.8 * dpr}px monospace`; ctx.textAlign = 'center';
+    ctx.fillText(i18n('floor_cap', 'DESK FLOOR · CLICK A BOT / DESK → THE MIND · PAPER ONLY'), w / 2, h - 8 * dpr);
   }
 
   function hitTest(ev) {
@@ -815,7 +760,6 @@
     raf = requestAnimationFrame(frame);
     window.addEventListener('resize', resize);
     canvas.addEventListener('click', hitTest);
-    // better mobile tap — ignore scroll gestures so page can pan-y
     let _touchX0 = 0, _touchY0 = 0;
     canvas.addEventListener('touchstart', function (ev) {
       if (!ev.changedTouches || !ev.changedTouches[0]) return;
@@ -826,7 +770,7 @@
       if (!ev.changedTouches || !ev.changedTouches[0]) return;
       const touch = ev.changedTouches[0];
       const dx = touch.clientX - _touchX0, dy = touch.clientY - _touchY0;
-      if (Math.hypot(dx, dy) > 14) return; // was a scroll / drag, don't steal
+      if (Math.hypot(dx, dy) > 14) return;
       hitTest({ clientX: touch.clientX, clientY: touch.clientY });
       ev.preventDefault();
     }, { passive: false });

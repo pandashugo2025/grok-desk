@@ -157,22 +157,48 @@ class DeskHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT / "ui"), **kwargs)
 
+    def _is_ui_static_path(self) -> bool:
+        try:
+            path = urlparse(getattr(self, "path", "") or "").path or ""
+        except Exception:
+            path = (getattr(self, "path", "") or "").split("?", 1)[0]
+        return path in ("/", "/index.html", "") or path.endswith(self._UI_NO_STORE_SUFFIXES)
+
+    def _strip_conditional_headers(self) -> None:
+        """Prevent SimpleHTTPRequestHandler.send_head() from returning 304 Not Modified."""
+        if getattr(self, "headers", None) is None:
+            return
+        for hdr in ("If-Modified-Since", "If-None-Match", "If-Range", "if-modified-since", "if-none-match", "if-range"):
+            try:
+                while hdr in self.headers:
+                    del self.headers[hdr]
+            except Exception:
+                pass
+
+    def send_header(self, keyword: str, value: str) -> None:
+        if self._is_ui_static_path() and keyword.lower() in ("last-modified", "etag"):
+            return
+        super().send_header(keyword, value)
+
     def end_headers(self) -> None:
         """Force no-store on UI static responses so iPad Safari cannot keep an old document.
 
         API JSON/SSE already set Cache-Control: no-store themselves — do not duplicate here.
         """
-        try:
-            path = urlparse(getattr(self, "path", "") or "").path or ""
-        except Exception:
-            path = (getattr(self, "path", "") or "").split("?", 1)[0]
-        # When serving "/", do_GET remaps self.path to /index.html before super().do_GET.
-        is_ui = path in ("/", "/index.html", "") or path.endswith(self._UI_NO_STORE_SUFFIXES)
-        if is_ui:
-            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
-            self.send_header("Pragma", "no-cache")
-            self.send_header("Expires", "0")
+        if self._is_ui_static_path():
+            super().send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            super().send_header("CDN-Cache-Control", "no-store")
+            super().send_header("Surrogate-Control", "no-store")
+            super().send_header("Pragma", "no-cache")
+            super().send_header("Expires", "0")
         super().end_headers()
+
+    def do_HEAD(self) -> None:  # noqa: N802
+        self._strip_conditional_headers()
+        parsed = urlparse(self.path)
+        if parsed.path in ("/", "/index.html"):
+            self.path = "/index.html"
+        return super().do_HEAD()
 
     def log_message(self, fmt: str, *args: Any) -> None:
         if args and str(args[1]).startswith("4"):
@@ -277,6 +303,7 @@ class DeskHandler(SimpleHTTPRequestHandler):
                 self._json({"error": repr(e), "paper_only": True, "address": addr}, 500)
             return
 
+        self._strip_conditional_headers()
         if path in ("/", "/index.html"):
             self.path = "/index.html"
         return super().do_GET()

@@ -2235,6 +2235,325 @@
     .topbar .tb-chips::-webkit-scrollbar { display: none; }
   }
 
+
+  /* ===== mind34: iPad landscape & tablet full-viewport precision fix ===== */
+  /* On >=900px (all iPad landscape: 1024, 1080, 1180, 1194, 1366 + iPad Pro 12.9 portrait + desktop):
+     - Single-row compact topbar (eliminates 3-row phone stack & empty black void)
+     - 6-column full-width agentbar grid (eliminates scroll cutoff & fade mask)
+     - Exact 100dvh 1-screen dashboard fit when height >= 600px so bottom 3 panels & footer are always visible
+  */
+  @media (min-width: 900px) {
+    .topbar,
+    html.touch-device .topbar {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      flex-wrap: nowrap !important;
+      gap: 10px !important;
+      padding: max(5px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 5px max(12px, env(safe-area-inset-left, 0px)) !important;
+      min-height: 42px !important;
+    }
+    .topbar .tb-row,
+    html.touch-device .topbar .tb-row {
+      display: contents !important;
+    }
+    .topbar .logo,
+    html.touch-device .topbar .logo {
+      font-size: 12.5px !important;
+      letter-spacing: 0.18em !important;
+      white-space: nowrap !important;
+      flex: 0 0 auto !important;
+    }
+    .topbar .tb-primary .view-toggle,
+    html.touch-device .topbar .tb-primary .view-toggle {
+      flex: 0 0 auto !important;
+      margin-left: 4px !important;
+    }
+    .topbar .tb-primary .view-toggle button,
+    html.touch-device .topbar .tb-primary .view-toggle button {
+      flex: 0 0 auto !important;
+      min-height: 28px !important;
+      padding: 4px 10px !important;
+      font-size: 8.5px !important;
+      letter-spacing: 0.12em !important;
+      white-space: nowrap !important;
+    }
+    .topbar .tb-primary .lang-toggle,
+    html.touch-device .topbar .tb-primary .lang-toggle {
+      margin-left: 4px !important;
+      flex: 0 0 auto !important;
+    }
+    .topbar .tb-primary .lang-toggle button,
+    html.touch-device .topbar .tb-primary .lang-toggle button {
+      min-height: 28px !important;
+      min-width: 32px !important;
+      padding: 4px 8px !important;
+      font-size: 8.5px !important;
+    }
+    .topbar .tb-stats .metrics,
+    html.touch-device .topbar .tb-stats .metrics {
+      display: flex !important;
+      width: auto !important;
+      margin: 0 0 0 6px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      gap: 14px !important;
+      flex: 0 1 auto !important;
+      align-items: center !important;
+    }
+    .topbar .tb-stats .metrics .m,
+    html.touch-device .topbar .tb-stats .metrics .m {
+      min-width: 0 !important;
+      white-space: nowrap !important;
+    }
+    .topbar .tb-stats .metrics .m b,
+    html.touch-device .topbar .tb-stats .metrics .m b {
+      font-size: 12.5px !important;
+    }
+    .topbar .tb-stats .metrics .m em,
+    html.touch-device .topbar .tb-stats .metrics .m em {
+      font-size: 7.5px !important;
+      letter-spacing: 0.1em !important;
+    }
+    .topbar .clock-wrap,
+    html.touch-device .topbar .tb-status .clock-wrap {
+      margin-left: auto !important;
+      text-align: right !important;
+      flex: 0 0 auto !important;
+    }
+    .topbar .clock,
+    html.touch-device .topbar .tb-status .clock {
+      font-size: 15.5px !important;
+      line-height: 1.05 !important;
+      white-space: nowrap !important;
+    }
+    .topbar .clock small,
+    html.touch-device .topbar .tb-status .clock-wrap small {
+      display: block !important;
+      font-size: 7px !important;
+      letter-spacing: 0.1em !important;
+      white-space: nowrap !important;
+    }
+    .topbar .tb-chips,
+    html.touch-device .topbar .tb-chips {
+      display: inline-flex !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      gap: 6px !important;
+      margin-left: 8px !important;
+      flex: 0 0 auto !important;
+      width: auto !important;
+      max-width: none !important;
+      overflow: visible !important;
+    }
+    .topbar .swarm-pill,
+    .topbar .paper-tag,
+    .topbar .share-btn,
+    html.touch-device .topbar .swarm-pill,
+    html.touch-device .topbar .paper-tag,
+    html.touch-device .topbar .share-btn {
+      min-height: 28px !important;
+      padding: 4px 9px !important;
+      font-size: 8px !important;
+      letter-spacing: 0.1em !important;
+      margin-left: 0 !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* 6-column full-width agent strip on >=900px: all 6 fit cleanly in 1 row */
+    .agentbar,
+    html.touch-device .agentbar {
+      display: grid !important;
+      grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+      gap: 6px !important;
+      padding: 5px 10px !important;
+      overflow: hidden !important;
+      mask-image: none !important;
+      -webkit-mask-image: none !important;
+    }
+    .agent,
+    html.touch-device .agent {
+      min-width: 0 !important;
+      max-width: none !important;
+      width: 100% !important;
+      min-height: 40px !important;
+      padding: 4px 8px !important;
+      gap: 7px !important;
+    }
+    .agent .orb,
+    html.touch-device .agent .orb {
+      width: 22px !important;
+      height: 22px !important;
+      font-size: 8.5px !important;
+      flex: 0 0 22px !important;
+    }
+    .agent .name,
+    html.touch-device .agent .name {
+      font-size: 9.5px !important;
+      letter-spacing: 0.12em !important;
+    }
+    .agent .st,
+    html.touch-device .agent .st {
+      font-size: 8px !important;
+      letter-spacing: 0.04em !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+  }
+
+  /* Full 1-screen dashboard fit on iPad landscape & desktop (>=900x600) */
+  @media (min-width: 900px) and (min-height: 600px) {
+    html, body,
+    html.touch-device,
+    html.touch-device body {
+      height: 100dvh !important;
+      max-height: 100dvh !important;
+      overflow: hidden !important;
+    }
+    .desk,
+    html.touch-device .desk {
+      display: grid !important;
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto auto !important;
+      height: 100dvh !important;
+      min-height: 100dvh !important;
+      max-height: 100dvh !important;
+      overflow: hidden !important;
+    }
+    .desk > .stage,
+    html.touch-device .desk > .stage {
+      min-height: 0 !important;
+      height: 100% !important;
+      overflow: hidden !important;
+    }
+    .swarm-floor,
+    html.touch-device .swarm-floor {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      height: 100% !important;
+      padding: 6px 10px !important;
+      gap: 5px !important;
+      overflow: hidden !important;
+    }
+    .floor-stage,
+    html.touch-device .desk.view-grid .floor-stage {
+      flex: 1 1 0% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+    }
+    .desk.view-mind .main,
+    html.touch-device .desk.view-mind .main {
+      display: grid !important;
+      flex-direction: row !important;
+      grid-template-columns: 185px minmax(0, 1fr) 210px !important;
+      gap: 8px !important;
+      padding: 6px 10px !important;
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      height: 100% !important;
+      overflow: hidden !important;
+    }
+    .desk.view-mind .main .left,
+    .desk.view-mind .main .right,
+    html.touch-device .main .left,
+    html.touch-device .main .right {
+      display: flex !important;
+      order: initial !important;
+      width: auto !important;
+      min-height: 0 !important;
+      height: 100% !important;
+    }
+    .desk.view-mind .main .center,
+    html.touch-device .main .center {
+      min-height: 0 !important;
+      height: 100% !important;
+    }
+    .mind-wrap,
+    html.touch-device .desk.view-mind .mind-wrap,
+    html.touch-device .mind-wrap {
+      flex: 1 1 0% !important;
+      height: auto !important;
+      min-height: 0 !important;
+    }
+    .mobile-side-tabs,
+    html.touch-device .mobile-side-tabs {
+      display: none !important;
+    }
+    .bottom,
+    html.touch-device .desk.view-grid .bottom,
+    html.touch-device .bottom {
+      display: grid !important;
+      grid-template-columns: 1.3fr 1.05fr 1.05fr !important;
+      gap: 6px !important;
+      padding: 0 10px 4px !important;
+      height: 170px !important;
+      min-height: 154px !important;
+      max-height: 182px !important;
+      overflow: hidden !important;
+    }
+    .desk.view-follow .bottom,
+    html.touch-device .desk.view-follow .bottom {
+      display: none !important;
+    }
+    .bottom .panel,
+    html.touch-device .desk.view-grid .bottom .panel,
+    html.touch-device .bottom .panel {
+      min-height: 0 !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      overflow: hidden !important;
+      padding: 6px 9px !important;
+    }
+    .holding-list,
+    .activity-list,
+    html.touch-device .holding-list,
+    html.touch-device .activity-list {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-y !important;
+    }
+    .deck-bal .equity { font-size: 22px !important; }
+    .deck-bal .pnl-line { font-size: 10.5px !important; }
+    canvas.chart { min-height: 52px !important; flex: 1 1 0% !important; }
+    .footer,
+    html.touch-device .footer {
+      padding: 3px 12px 4px !important;
+      font-size: 8px !important;
+      flex-shrink: 0 !important;
+    }
+  }
+
+  /* Portrait iPad / mid-tablet (600px..899px): clean 3x2 agent grid & compact 2-row header */
+  @media (min-width: 600px) and (max-width: 899px) {
+    .topbar,
+    html.touch-device .topbar {
+      gap: 6px !important;
+      padding: max(6px, env(safe-area-inset-top, 0px)) 10px 6px !important;
+    }
+    .agentbar,
+    html.touch-device .agentbar {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 6px !important;
+      padding: 6px 10px !important;
+      overflow: hidden !important;
+      mask-image: none !important;
+      -webkit-mask-image: none !important;
+    }
+    .agent,
+    html.touch-device .agent {
+      min-width: 0 !important;
+      max-width: none !important;
+      width: 100% !important;
+      min-height: 42px !important;
+      padding: 5px 8px !important;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -2459,7 +2778,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind33</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind34</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -2471,8 +2790,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261025mind33"></script>
-<script src="/mind.js?v=20261025mind33"></script>
+<script src="/floor.js?v=20261025mind34"></script>
+<script src="/mind.js?v=20261025mind34"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -2546,7 +2865,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind33',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind34',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -2626,7 +2945,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind33',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind34',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',

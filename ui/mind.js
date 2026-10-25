@@ -265,10 +265,12 @@
   function card(x, y, ax, ay, title, rows, col) {
     rows = rows.filter(r => r[1] != null); if (!rows.length) return;
     const fs = 7.5 * dpr, lh = 10 * dpr, wd = 92 * dpr, ht = (rows.length + 1) * lh + 6 * dpr;
+    x = Math.max(8 * dpr, Math.min(canvas.width - wd - 8 * dpr, x));
+    y = Math.max(8 * dpr, Math.min(canvas.height - ht - 54 * dpr, y));
     ctx.strokeStyle = hexA(col, 0.6); ctx.lineWidth = 1 * dpr; ctx.setLineDash([3 * dpr, 3 * dpr]);
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(x + (x < ax ? wd : 0), y + ht / 2); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = hexA(col, 1); ctx.beginPath(); ctx.arc(ax, ay, 2 * dpr, 0, 7); ctx.fill();
-    ctx.fillStyle = 'rgba(5,7,16,0.82)'; ctx.strokeStyle = hexA(col, 0.8);
+    ctx.fillStyle = 'rgba(5,7,16,0.88)'; ctx.strokeStyle = hexA(col, 0.85);
     ctx.beginPath(); ctx.roundRect(x, y, wd, ht, 3 * dpr); ctx.fill(); ctx.stroke();
     ctx.font = `600 ${fs}px monospace`; ctx.textAlign = 'left'; ctx.fillStyle = hexA(col, 1); ctx.fillText(title, x + 5 * dpr, y + lh);
     rows.forEach((r, i) => { ctx.fillStyle = 'rgba(170,180,200,0.85)'; ctx.textAlign = 'left'; ctx.fillText(r[0], x + 5 * dpr, y + lh * (i + 2));
@@ -322,7 +324,7 @@
     const sig = state.signal || {};
     const I = Math.max(0, Math.min(1, Number(sig.intensity_n != null ? sig.intensity_n : 0.35)));
     const coreCol = actionColor(sig.action || 'HOLD'), sp = 0.5 + I * 1.2;
-    const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.40, h * 0.49);
+    const cx = w / 2, cy = h * 0.45, R = Math.min(w * 0.35, h * 0.41);
     ctx.clearRect(0, 0, w, h); placed = [];
     // deep space bg + dust
     const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.7);
@@ -346,7 +348,7 @@
       // gentle vertical bob (desk-floor ghost hover)
       const bob = Math.sin(t * 2.1 + b.phase * 1.7) * (5.5 * dpr) + Math.sin(t * 3.4 + b.phase) * (2.2 * dpr);
       p.y += bob;
-      const lim = h * 0.70; if (p.y > lim) p.y = lim - (p.y - lim) * 0.15; return { b, p, active };
+      const lim = h * 0.66; if (p.y > lim) p.y = lim - (p.y - lim) * 0.25; return { b, p, active };
     });
 
     drawRing(ring, false, I, t, coreCol);
