@@ -1,5 +1,5 @@
 /**
- * Desk Floor — isometric 2D office for GROK DESK SWARM GRID (mind34).
+ * Desk Floor — isometric 2D office for GROK DESK SWARM GRID (mind35).
  * FloorViz.start(canvas) / stop() / setState(s) / onSelect(cb)
  */
 (function (global) {
@@ -662,7 +662,7 @@
     const pct = eq ? (pnl / Math.max(1, eq - pnl)) * 100 : 0;
     const liveN = i18n('floor_live_n', isZh() ? '6 桌線上' : '6 DESKS LIVE');
     const tick = `DESK · ${(pct >= 0 ? '+' : '')}${pct.toFixed(2)}% · ${liveN} · COINBASE LIVE · PAPER ONLY · ${slug} · `;
-    const verTxt = 'UI mind34';
+    const verTxt = 'UI mind35';
     const verW = 58 * dpr;
 
     ctx.save();

@@ -137,8 +137,9 @@
     box-shadow: 0 0 8px var(--lime); animation: blink 1.4s infinite;
   }
   .paper-tag {
+    display: inline-flex; align-items: center; justify-content: center;
     border: 1px solid rgba(255,200,87,0.4); color: #ffc857;
-    padding: 3px 8px; border-radius: 999px; font-size: 8px; letter-spacing: 0.14em;
+    padding: 4px 10px; border-radius: 999px; font-size: 9px; letter-spacing: 0.08em;
     margin-left: 6px;
     background: #07090e;
     flex: 0 0 auto;
@@ -2554,6 +2555,88 @@
     }
   }
 
+
+  /* ===== mind35: Top-right 3 pills dead-level alignment across all viewports ===== */
+  .topbar .clock-wrap > small,
+  html.touch-device .topbar .tb-status .clock-wrap > small {
+    display: none !important;
+  }
+  .topbar .tb-status,
+  html.touch-device .topbar .tb-status {
+    align-items: center !important;
+  }
+  .topbar .tb-chips,
+  html.touch-device .topbar .tb-chips {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    align-content: center !important;
+    gap: 6px !important;
+  }
+  .topbar .swarm-pill,
+  .topbar .paper-tag,
+  .topbar .share-btn,
+  html.touch-device .topbar .swarm-pill,
+  html.touch-device .topbar .paper-tag,
+  html.touch-device .topbar .share-btn {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    padding: 0 12px !important;
+    margin: 0 !important;
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-radius: 999px !important;
+    font-family: "PingFang TC", "Hiragino Sans CNS", "Microsoft JhengHei", "Noto Sans CJK TC", "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.08em !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+    gap: 6px !important;
+  }
+  .topbar .swarm-pill .dot,
+  html.touch-device .topbar .swarm-pill .dot {
+    display: inline-block !important;
+    width: 6px !important;
+    height: 6px !important;
+    min-width: 6px !important;
+    min-height: 6px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 0 0 6px !important;
+    align-self: center !important;
+  }
+  .topbar .swarm-pill .pill-txt,
+  .topbar .paper-tag .pill-txt,
+  .topbar .share-btn .pill-txt,
+  html.touch-device .topbar .swarm-pill .pill-txt,
+  html.touch-device .topbar .paper-tag .pill-txt,
+  html.touch-device .topbar .share-btn .pill-txt {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    height: 12px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: inherit !important;
+    vertical-align: middle !important;
+    align-self: center !important;
+  }
 </style>
 </head>
 <body>
@@ -2600,9 +2683,9 @@
         <small data-i18n="clock_sub">UTC · 下方亦顯示 HKT</small>
       </div>
       <div class="tb-chips">
-        <div class="swarm-pill"><span class="dot"></span><span id="swarmLabel">群體線上</span></div>
-        <div class="paper-tag" data-i18n="paper_tag">紙上 · 模擬</div>
-        <button type="button" class="share-btn" id="shareLinkBtn" data-i18n="share_btn" title="Copy share URL">分享連結</button>
+        <div class="swarm-pill" id="swarmPill"><span class="dot"></span><span class="pill-txt" id="swarmLabel">群體線上</span></div>
+        <div class="paper-tag" id="paperTag"><span class="pill-txt" data-i18n="paper_tag">紙上 · 模擬</span></div>
+        <button type="button" class="share-btn" id="shareLinkBtn" title="Copy share URL"><span class="pill-txt" data-i18n="share_btn">分享連結</span></button>
       </div>
     </div>
   </div>
@@ -2778,7 +2861,7 @@
   </div>
 
   <div class="footer">
-    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind34</span>
+    <span data-i18n="footer">GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind35</span>
     <span class="warn" id="footWarn">紙上／模擬</span>
     <span id="footHkt">—</span>
   </div>
@@ -2790,8 +2873,8 @@ window.DeskI18n = window.DeskI18n || {
   t: function(k){ return k; }
 };
 </script>
-<script src="/floor.js?v=20261025mind34"></script>
-<script src="/mind.js?v=20261025mind34"></script>
+<script src="/floor.js?v=20261025mind35"></script>
+<script src="/mind.js?v=20261025mind35"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const AGENT_ORDER = ["EDGE","CLOSER","PRIOR","TAKER","SPOTTER","KELLY"];
@@ -2865,7 +2948,7 @@ const I18N = {
     share_disclaimer:'紙上模擬 · 無金鑰 · 無真實下單 · 免費方案首次開啟約 30–50 秒',
     share_fail:'無法複製，請手動選取網址',
 
-    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind34',
+    footer:'GROK DESK · 多代理紙上交易台 · 無金鑰 · 無真實下單 · UI mind35',
     swarm_online:'群體線上', swarm_demo:'群體 · 示範', swarm_idle:'群體閒置',
     desks_live:(n)=>`${n} 桌線上`,
     session:'本場', awaiting:'等待中', awaiting_swarm:'等待群體…', awaiting_act:'等待活動…',
@@ -2945,7 +3028,7 @@ const I18N = {
     share_disclaimer:'PAPER sim · no keys · no live orders · free tier first open ≈30–50s',
     share_fail:'Copy failed — select the URL manually',
 
-    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind34',
+    footer:'GROK DESK · MULTI-AGENT PAPER DESK · NO KEYS · NO LIVE CLOB · UI mind35',
     swarm_online:'SWARM ONLINE', swarm_demo:'SWARM · DEMO', swarm_idle:'SWARM IDLE',
     desks_live:(n)=>`${n} DESKS LIVE`,
     session:'session', awaiting:'awaiting', awaiting_swarm:'awaiting swarm…', awaiting_act:'awaiting activity…',
